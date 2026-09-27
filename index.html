@@ -1,0 +1,2746 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>연수 장소 안내 360 투어</title>
+<link rel="icon" href="data:,">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@photo-sphere-viewer/core@5.15.1/index.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@photo-sphere-viewer/markers-plugin@5.15.1/index.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@photo-sphere-viewer/virtual-tour-plugin@5.15.1/index.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@photo-sphere-viewer/gallery-plugin@5.15.1/index.css">
+<style>
+:root{
+  --panel:rgba(255,255,255,.94); --panel-solid:#fff; --ink:#1f1d1a; --muted:#5f5a52;
+  --line:#e2ded6; --info:#b45309; --accent:#0f766e; --focus:#2563eb;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){--panel:rgba(32,35,39,.94);--panel-solid:#202327;--ink:#f2efe9;--muted:#b5afa5;--line:#3a3e44;--accent:#14b8a6}
+}
+:root[data-theme="dark"]{--panel:rgba(32,35,39,.94);--panel-solid:#202327;--ink:#f2efe9;--muted:#b5afa5;--line:#3a3e44;--accent:#14b8a6}
+*,*::before,*::after{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{background:#1c1f23;color:var(--ink);font-family:"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;overflow:hidden}
+#viewer{position:fixed;inset:0}
+.psv-container{font-family:inherit}
+.psv-navbar{padding-bottom:env(safe-area-inset-bottom,0px);height:calc(40px + env(safe-area-inset-bottom,0px))}
+
+.top{position:fixed;left:12px;right:12px;top:calc(env(safe-area-inset-top,0px) + 12px);z-index:120;display:flex;justify-content:space-between;align-items:flex-start;gap:10px;pointer-events:none}
+.top>*{pointer-events:auto}
+.stack{display:flex;flex-direction:column;gap:8px;max-width:min(380px,64vw)}
+.card{background:var(--panel);border-radius:12px;padding:10px 14px;box-shadow:0 2px 12px rgba(0,0,0,.25)}
+/* 위쪽 카드: 투어 제목(늘 보임) + 지금 있는 곳 */
+.title h1{margin:0;font-size:17px;font-weight:700;line-height:1.3}
+.title .here{display:flex;align-items:center;gap:5px;margin-top:2px;font-size:14px;color:var(--muted)}
+.title .here::before{content:"";flex:none;width:8px;height:8px;border-radius:50%;background:var(--accent)}
+/* 지점 사진 목록: 천천히 미끄러져 올라오게(마우스를 화면 아래 끝에 가져가면 열림) */
+.psv-gallery{transition:transform .35s cubic-bezier(.2,.8,.2,1)}
+@media (prefers-reduced-motion:reduce){.psv-gallery{transition:none}}
+.gallery-tip{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 40px);transform:translate(-50%,100%);z-index:90;padding:3px 12px;border-radius:8px 8px 0 0;background:var(--panel);color:var(--muted);font-size:12px;pointer-events:none;opacity:0;transition:opacity .2s,transform .2s}
+.gallery-tip.on{opacity:1;transform:translate(-50%,0)}
+.detail h2{margin:0 0 4px;font-size:15px}
+.detail p{margin:0;font-size:14px;line-height:1.55;color:var(--muted)}
+.coords{margin:0;font-size:15px;font-weight:600;font-variant-numeric:tabular-nums}
+.hint{margin:6px 0 0;font-size:13px;color:var(--muted)}
+.snippet{margin:8px 0 0;width:100%;height:100px;border:1px solid var(--line);border-radius:8px;padding:8px;font:12px/1.5 ui-monospace,Menlo,Consolas,monospace;background:var(--panel-solid);color:var(--ink);resize:vertical}
+.btn{min-height:44px;padding:0 14px;border:1px solid var(--line);border-radius:10px;background:var(--panel-solid);color:var(--ink);font:inherit;font-size:14px;cursor:pointer}
+.btn[aria-pressed="true"]{background:var(--info);border-color:var(--info);color:#fff;font-weight:600}
+.btn:focus-visible,.snippet:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+/* 편집 모드 (이 컴퓨터에서 열었을 때만 버튼이 보임) */
+.edit{max-height:calc(100dvh - 120px);overflow-y:auto;font-size:14px}
+.edit h3{margin:12px 0 2px;font-size:14px;font-weight:600}
+.edit .hint b{color:var(--ink)}
+.erow{display:flex;align-items:center;gap:8px;margin-top:6px;flex-wrap:wrap}
+.erow>span{flex:1}
+.estat{font-size:13px;color:var(--muted)}
+.btn.sm{min-height:36px;padding:0 12px;font-size:13px;white-space:nowrap}
+.btn:disabled{opacity:.45;cursor:default}
+.edit select{flex:1;min-height:36px;min-width:0;border:1px solid var(--line);border-radius:8px;background:var(--panel-solid);color:var(--ink);font:inherit;font-size:13px}
+.elinks{display:flex;flex-direction:column;gap:4px;margin-top:6px}
+.elinks button{display:flex;justify-content:space-between;gap:8px;min-height:40px;padding:4px 10px;border:1px solid var(--line);border-radius:8px;background:var(--panel-solid);color:var(--ink);font:inherit;font-size:14px;text-align:left;cursor:pointer}
+.elinks button small{font-size:12px;color:var(--muted);white-space:nowrap}
+.elinks button small.warn{color:var(--info)}
+.elinks button[aria-checked="true"]{border-color:var(--accent);box-shadow:inset 0 0 0 2px var(--accent)}
+.eprev{position:relative;height:270px;margin-top:6px;border-radius:8px;overflow:hidden;background:#000}
+.eprev::after{content:"";position:absolute;left:50%;top:0;bottom:0;border-left:2px dashed rgba(255,255,255,.85);pointer-events:none;z-index:200}
+.eprev .psv-navbar{display:none}
+/* 미리보기 속 다음 지점의 화살표: 이름 + 바닥 점. 온 곳(되돌아가는 화살표)은 회색 */
+.mpin{display:flex;flex-direction:column;align-items:center;pointer-events:none}
+.mpin span{white-space:nowrap;padding:3px 8px;border-radius:999px;background:rgba(15,118,110,.95);color:#fff;font:600 12px/1.2 "IBM Plex Sans KR",system-ui,sans-serif;box-shadow:0 1px 6px rgba(0,0,0,.45)}
+.mpin i{width:2px;height:14px;background:rgba(255,255,255,.9)}
+.mpin b{width:12px;height:12px;border-radius:50%;background:#5eead4;border:2px solid #fff;box-shadow:0 0 6px rgba(0,0,0,.5)}
+.mpin.back span{background:rgba(71,85,105,.92)}
+.mpin.back b{background:#cbd5e1}
+/* 미리보기 속 안내 글씨는 작게 */
+.eprev .mk .lbl{padding:3px 7px;font-size:11px;border-radius:6px}
+.eprev .mk .lbl .more{display:none}
+.eprev .mk .dot{width:10px;height:10px;border-width:2px}
+.eprev .sign *{pointer-events:none}
+.echeck{font-size:13px;color:var(--muted);cursor:pointer}
+.enew{display:block;margin-top:8px;font-size:13px;color:var(--muted)}
+.eform input[type=range]{padding:0;border:0;background:none}
+.eform select{display:block;width:100%;margin-top:3px;padding:7px 9px;border:1px solid var(--line);border-radius:8px;background:var(--panel-solid);color:var(--ink);font:inherit;font-size:14px}
+.eform output{float:right;font-variant-numeric:tabular-nums;color:var(--ink)}
+/* 막대 옆 숫자 칸: 막대로 어림잡고 숫자로 정확히 */
+.eform .rnum{float:right;display:flex;align-items:center;gap:3px;color:var(--ink)}
+.eform .rnum input{display:inline-block;width:70px;margin:0;padding:3px 6px;font-size:13px;text-align:right;font-variant-numeric:tabular-nums}
+.eform .rnum + input[type=range]{clear:both}
+.ecolors{margin-top:8px;font-size:13px;color:var(--muted)}
+.swatches{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+.swatches .grp{flex-basis:100%;font-size:12px;color:var(--muted);margin-top:2px}
+.swatches button{width:30px;height:30px;padding:0;border-radius:6px;border:1px solid var(--line);cursor:pointer;box-shadow:inset 0 0 0 2px rgba(255,255,255,.25)}
+.swatches button[aria-checked="true"]{outline:3px solid var(--accent);outline-offset:2px}
+.swatches button:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg button{min-height:34px;padding:0 10px;border:0;border-left:1px solid var(--line);background:var(--panel-solid);color:var(--ink);font:inherit;font-size:13px;cursor:pointer}
+.seg button:first-child{border-left:0}
+.seg button[aria-pressed="true"]{background:var(--accent);color:#fff;font-weight:600}
+.seg button:focus-visible{outline:3px solid var(--focus);outline-offset:-3px}
+.ecolor{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--muted)}
+.ecolor input[type=color]{width:40px;height:32px;padding:0;border:1px solid var(--line);border-radius:6px;background:none;cursor:pointer}
+.enew input{display:block;width:100%;margin-top:3px;padding:7px 9px;border:1px solid var(--line);border-radius:8px;background:var(--panel-solid);color:var(--ink);font:inherit;font-size:14px}
+.chiparr{display:inline-block;width:18px;height:18px;vertical-align:-4px;color:var(--accent)}
+.chiparr svg{display:block;width:100%;height:100%}
+.echeck input{width:18px;height:18px;flex:none;margin:0}
+.elinks .row{display:flex;gap:4px}
+.elinks .row>button:first-child{flex:1;min-width:0}
+.elinks .x{flex:none;width:40px;justify-content:center;color:var(--muted)}
+.eform{margin-top:8px;padding:10px;border:1px solid var(--line);border-radius:10px}
+.eform>label{display:block;margin-top:8px;font-size:13px;color:var(--muted)}
+.eform>label:first-child{margin-top:0}
+.eform small{font-size:12px}
+.eform input:not([type=file]),.eform textarea{display:block;width:100%;margin-top:3px;padding:7px 9px;border:1px solid var(--line);border-radius:8px;background:var(--panel-solid);color:var(--ink);font:inherit;font-size:14px;resize:vertical}
+.eform input:focus-visible,.eform textarea:focus-visible,.edit select:focus-visible{outline:3px solid var(--focus);outline-offset:1px}
+.efile{display:inline-flex;align-items:center}
+.btn.danger{color:#b91c1c}
+.eform .btn[aria-pressed="true"],.edit .btn[aria-pressed="true"]{background:var(--info);border-color:var(--info);color:#fff}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .btn.danger{color:#fca5a5}}
+/* 편집 창 머리(늘 보임): 되돌리기·저장 / 지금 지점·함께 저장·도움말 / 탭 */
+.ehead{position:sticky;top:-10px;z-index:3;margin:-10px -14px 0;padding:10px 14px 0;background:var(--panel-solid);border-radius:12px 12px 0 0;border-bottom:1px solid var(--line)}
+.ehead>.erow:first-child{margin-top:0}
+.ehere .here{flex:1;min-width:0;text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
+.ehere .sync{display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
+.ehere #eHelp{flex:none;width:36px;padding:0;border-radius:50%;font-weight:700}
+.etabs{display:flex;gap:2px;margin:8px -4px 0}
+.etabs button{flex:1;min-height:38px;padding:0 4px;border:0;border-bottom:3px solid transparent;background:none;color:var(--muted);font:inherit;font-size:14px;font-weight:500;cursor:pointer;white-space:nowrap}
+.etabs button[aria-selected="true"]{color:var(--accent);border-bottom-color:var(--accent);font-weight:700}
+.etabs button:focus-visible{outline:3px solid var(--focus);outline-offset:-3px}
+.etab{padding-top:4px}
+.etab>h3:first-child{margin-top:10px}
+.etab .eform,.etab .elinks{scroll-margin-top:160px}
+/* 지금 지점 버튼을 누르면 내려오는 지점 목록 */
+.enodepop{position:absolute;left:0;right:0;top:100%;z-index:4;padding:8px 14px 12px;background:var(--panel-solid);border:1px solid var(--line);border-top:0;border-radius:0 0 12px 12px;box-shadow:0 10px 24px rgba(0,0,0,.3)}
+.enodepop .enodes{max-height:min(420px,50vh)}
+.enote{margin:8px 0 0;padding:7px 10px;border-radius:8px;background:color-mix(in srgb,var(--accent) 12%,transparent);font-size:12.5px;line-height:1.5;color:var(--ink)}
+/* 도움말 문장은 [?] 을 켰을 때만 */
+.edit .hint{display:none}
+.edit.help .hint{display:block}
+/* 자주 안 쓰는 세부는 「자세히」로 접어 둔다 */
+.edit details.more{margin-top:10px;padding:0 10px;border:1px solid var(--line);border-radius:10px}
+.edit details.more>summary{padding:9px 0;font-size:13px;font-weight:500}
+.edit details.more[open]{padding-bottom:10px}
+.edit details.more[open]>summary{border-bottom:1px solid var(--line);margin-bottom:4px}
+.edit details.more>label{display:block;margin-top:8px;font-size:13px;color:var(--muted)}
+/* 화살표 넣기 줄: 글 칸을 누르면 그 칸 아래에 나오고, 단추를 누르면 커서 자리에 그 글자가 들어간다 */
+.arrowbar{display:flex;flex-wrap:wrap;align-items:center;gap:3px;margin-top:4px}
+.arrowbar small{margin-right:2px;font-size:12px;color:var(--muted)}
+.arrowbar button{width:30px;height:30px;padding:0;border:1px solid var(--line);border-radius:6px;background:var(--panel-solid);color:var(--ink);font:inherit;font-size:16px;line-height:1;cursor:pointer}
+.arrowbar button:hover{border-color:var(--accent);color:var(--accent)}
+.arrowbar button:focus-visible{outline:3px solid var(--focus);outline-offset:1px}
+/* 색 단추 + 하나로 쓰는 색 고르기 창 */
+.erow.cfields{align-items:flex-end;gap:10px;margin-top:8px}
+.cfield{display:flex;flex-direction:column;gap:3px;font-size:12px;color:var(--muted)}
+.cbtn{display:inline-flex;align-items:center;gap:6px;min-height:36px;padding:0 10px 0 6px;border:1px solid var(--line);border-radius:8px;background:var(--panel-solid);color:var(--ink);font:inherit;font-size:12px;cursor:pointer;font-variant-numeric:tabular-nums}
+.cbtn i{flex:none;width:22px;height:22px;border-radius:5px;border:1px solid rgba(0,0,0,.2)}
+.cbtn[aria-expanded="true"]{outline:3px solid var(--accent);outline-offset:1px}
+.cbtn:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+.cpop{position:fixed;z-index:300;width:300px;max-width:calc(100vw - 16px);padding:10px 12px 12px;background:var(--panel-solid);color:var(--ink);border:1px solid var(--line);border-radius:12px;box-shadow:0 8px 28px rgba(0,0,0,.4);font-size:14px}
+.cpop .grp{font-size:12px;color:var(--muted);margin:4px 0 2px}
+.btn.primary:not(:disabled){background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+.enodes{list-style:none;margin:6px 0 0;padding:0;display:flex;flex-direction:column;gap:3px;max-height:260px;overflow-y:auto}
+.enodes li{display:flex;align-items:center;gap:4px}
+.enodes .go{flex:1;min-width:0;display:flex;align-items:center;gap:6px;min-height:36px;padding:2px 8px;border:1px solid var(--line);border-radius:8px;background:var(--panel-solid);color:var(--ink);font:inherit;font-size:13px;text-align:left;cursor:pointer}
+.enodes .go img{width:44px;height:22px;object-fit:cover;border-radius:4px;flex:none;background:var(--line)}
+.enodes .go span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.enodes .go small{font-size:11px;color:var(--muted);white-space:nowrap}
+.enodes .go[aria-current="true"]{border-color:var(--accent);box-shadow:inset 0 0 0 2px var(--accent)}
+.enodes .mv{flex:none;width:30px;height:36px;border:1px solid var(--line);border-radius:8px;background:var(--panel-solid);color:var(--muted);font:inherit;cursor:pointer}
+.enodes .mv:disabled{opacity:.3;cursor:default}
+.edit details{margin-top:12px}
+.edit summary{cursor:pointer;font-size:13px;color:var(--muted)}
+.editing .psv-canvas-container{cursor:crosshair}
+.editing .spot,.editing .farrow{touch-action:none;cursor:grab}
+.editing .spot.dragging,.editing .farrow.dragging{cursor:grabbing}
+/* 도착 자리를 아직 안 찍은 화살표의 임시 원·핀: 편집 중에만 흐리게 */
+.editing .spot.guess{opacity:.45}
+.editing .pin.guess .lbl{background:rgba(180,83,9,.9)}
+.editing .pin.guess .lbl::after{content:" · 자리 안 찍음";font-weight:400;font-size:12px}
+[hidden]{display:none!important}
+.mk{display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer}
+.mk .lbl{white-space:nowrap;padding:calc(7px * var(--lp,1)) calc(11px * var(--lp,1));border-radius:8px;background:var(--lba,var(--lb,#b45309));color:var(--lt,#fff);font:600 calc(14px * var(--ls,1))/1.2 "IBM Plex Sans KR",system-ui,sans-serif;box-shadow:0 2px 8px rgba(0,0,0,.35)}
+/* 안내 글씨 모양(shape): 기본 태그 / 알약 / 말풍선(아래 꼬리) / 카드(흰 바탕 + 색 띠) / 글씨만(바탕 없이 흰 테두리 글씨) */
+.mk-pill .lbl{border-radius:999px;padding:calc(7px * var(--lp,1)) calc(15px * var(--lp,1))}
+.mk-bubble .lbl{position:relative;border-radius:12px;padding:calc(8px * var(--lp,1)) calc(13px * var(--lp,1))}
+.mk-bubble .lbl::after{content:"";position:absolute;left:50%;top:100%;transform:translateX(-50%);border:7px solid transparent;border-top-color:var(--lba,var(--lb,#b45309));border-bottom:0}
+.mk-bubble:not(.callout){gap:12px}
+.mk-card .lbl{background:var(--lca,#fff);border-left:6px solid var(--lb,#b45309);border-radius:6px;padding:calc(8px * var(--lp,1)) calc(12px * var(--lp,1))}
+.mk-card .lbl .more{background:var(--lb,#b45309);color:#fff}
+.mk-plain .lbl{background:none;box-shadow:none;font-weight:700;text-shadow:0 0 2px #fff,0 0 4px #fff,0 0 7px #fff,0 1px 2px rgba(0,0,0,.35)}
+.mk-plain .lbl .more{background:var(--lb,#b45309);color:#fff;text-shadow:none}
+.mk .dot{width:20px;height:20px;border-radius:50%;background:var(--lb,#b45309);border:3px solid #fff;box-shadow:0 1px 6px rgba(0,0,0,.45)}
+/* 따로 뺀 글씨("box"): 글씨는 비어 있는 자리에, 가리키는 곳에는 점만 두고 흰 선으로 잇는다 */
+.psv-marker.leader{filter:drop-shadow(0 0 2px rgba(0,0,0,.75));pointer-events:none}
+.editing .mk.callout,.editing .mk .dot{touch-action:none;cursor:grab}
+.editing .mk.callout.dragging,.editing .mk.dragging .dot{cursor:grabbing}
+/* 안내판·간판(signs): 사진 속 벽·기둥·문에 붙은 판. 3D 로 놓고 벽 방향만큼 돌려서 벽에 붙은 것처럼 보이게 한다 */
+/* 바깥(.sign)은 뷰어가 display:block 으로 덮어쓰므로 모양은 안쪽(.sign-in)에 */
+.sign{position:relative;pointer-events:none}
+.sign-in{position:relative;z-index:1;background-color:var(--bga,var(--bg));color:var(--fg);border-color:var(--fg);box-sizing:border-box;height:100%;overflow:hidden;display:flex;align-items:center;gap:.45em;padding:.45em .7em;border-radius:.3em;border-width:.12em;border-style:solid;font-weight:700;line-height:1.15;font-family:"IBM Plex Sans KR",system-ui,sans-serif;box-shadow:0 .15em .7em rgba(0,0,0,.45)}
+.sign .ar{flex:none;width:1.35em;height:1.35em}
+.sign .ar svg{display:block;width:100%;height:100%}
+.sign .tx{display:flex;flex-direction:column;min-width:0;flex:1}
+.sign .tx small{margin-top:.15em;font-weight:500;opacity:.95}
+.sign .tx b,.sign .tx small{white-space:pre-line;word-break:keep-all;overflow-wrap:anywhere}   /* 입력한 줄바꿈 그대로, 한글은 낱말 단위로 줄바꿈 */
+.sign .tx .free{position:absolute;margin:0;z-index:2}   /* 끌어서 옮긴 글씨: 판 안 자리(%)에 */
+.editing .sign.sel .tx b,.editing .sign.sel .tx small{cursor:move;outline:1px dashed rgba(250,204,21,.8);outline-offset:.08em}
+.sign .sg-img{display:block;max-width:100%;max-height:12em;margin-bottom:.35em;object-fit:contain;border-radius:.15em}
+/* 화살표를 글씨 아래·위에 두는 세로 배치(스탠드형 기본). 세로 정렬은 justify, 가로 정렬은 align */
+.sign-in.col{flex-direction:column}
+.sign-in.col .ar{width:2.4em;height:2.4em}
+.sign-in.col .tx{flex:none;width:100%}
+/* 형태(kind): 벽 부착(wall) 말고 바닥에 서는 간판. 판 둘레의 틀·다리는 판 너비 1% = --u 로 그린다 */
+.sign .deco{position:absolute;pointer-events:none;z-index:0}
+.k-xbanner .sign-in,.k-aframe .sign-in,.k-stand .sign-in{border:0}
+.sign.see .sign-in{box-shadow:none;text-shadow:0 0 .2em var(--bg),0 0 .45em var(--bg)}   /* 많이 비치면 글씨 둘레를 판 색으로 번지게 해 읽히게 */
+.k-xbanner .sign-in{border-radius:.08em;box-shadow:0 .2em .8em rgba(0,0,0,.35)}
+.k-xbanner .d-hooks{left:4%;right:4%;top:calc(var(--u) * -5);height:calc(var(--u) * 6);border:calc(var(--u) * .9) solid var(--frame);border-bottom:0;border-radius:calc(var(--u) * 1) calc(var(--u) * 1) 0 0}
+.k-xbanner .d-legs{left:-10%;width:120%;top:calc(100% - var(--u) * 1);height:calc(var(--u) * 16);overflow:visible}
+.k-aframe .sign-in{border-radius:calc(var(--u) * 1.5) calc(var(--u) * 1.5) 0 0;box-shadow:none}
+.k-aframe .sign-in,.k-aframe .d-front{background-image:repeating-linear-gradient(93deg,rgba(0,0,0,.07) 0 1px,transparent 1px 7px),linear-gradient(rgba(255,255,255,.07),rgba(0,0,0,.14))}
+.k-aframe .d-front{left:0;right:0;top:calc(100% - 1px);height:calc(var(--u) * 22);background-color:var(--bga,var(--bg));-webkit-mask:radial-gradient(ellipse 34% 62% at 50% 100%,transparent 97%,#000 100%);mask:radial-gradient(ellipse 34% 62% at 50% 100%,transparent 97%,#000 100%);z-index:1}
+.k-aframe .d-back{top:calc(var(--u) * 4);bottom:calc(var(--u) * -21);right:calc(var(--u) * -6);width:calc(var(--u) * 8);background:var(--frame);transform:skewY(10deg);border-radius:0 calc(var(--u) * 1) 0 0}
+.k-stand .sign-in{border-radius:calc(var(--u) * .8);box-shadow:0 .1em .4em rgba(0,0,0,.25)}
+.k-stand .d-tube{left:calc(var(--u) * -5);right:calc(var(--u) * -5);top:calc(var(--u) * -18);bottom:calc(var(--u) * -30);border:calc(var(--u) * 3.4) solid var(--frame);border-bottom:0;border-radius:calc(var(--u) * 16) calc(var(--u) * 16) 0 0;box-shadow:inset 0 0 0 1px rgba(0,0,0,.08),0 .1em .4em rgba(0,0,0,.25)}
+.k-stand .d-back{left:0;right:0;top:calc(var(--u) * -6);bottom:calc(var(--u) * -12);background:var(--frame);filter:brightness(.9);transform:translate(calc(var(--u) * 5),calc(var(--u) * -2))}
+/* 편집 중 고른 안내판의 화면 손잡이: 판이 작거나 비스듬해도 늘 같은 크기로, 판의 화면 테두리를 따라 붙는다
+   ↘ 크기, ↔ 벽 방향, ↕ 기울기, ⟳ 돌리기, 화살표 위 점선 원은 끌어서 화살표 돌리기 */
+.sgiz{position:fixed;inset:0;z-index:105;pointer-events:none}
+.sgiz .frame{position:absolute;border:2px dashed #facc15;border-radius:4px}
+.sgiz button{position:absolute;pointer-events:auto;width:32px;height:32px;margin:-16px 0 0 -16px;padding:0;border-radius:50%;background:#facc15;border:2px solid #1f1d1a;color:#1f1d1a;font:700 16px/1 system-ui,sans-serif;box-shadow:0 1px 6px rgba(0,0,0,.5);cursor:grab;touch-action:none}
+.sgiz button:active{cursor:grabbing}
+.sgiz button[data-h="arrow"]{background:rgba(250,204,21,.18);border:3px dashed #facc15;box-shadow:none}
+.sgiz button:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+.editing .sign{pointer-events:auto;cursor:grab;touch-action:none}
+.editing .sign.dragging{cursor:grabbing}
+.editing .sign.sel .sign-in{outline:.14em dashed #facc15;outline-offset:.2em}
+.psv-virtual-tour-arrows{display:none}   /* 뷰어 기본 화살표는 화면에 붙어 다녀서 쓰지 않고, 바닥 화살표(.farrow)를 그린다 */
+/* 걷는 동안에는 사진만 움직이므로 화살표·글씨를 잠시 숨긴다 */
+.psv-markers{transition:opacity .4s}
+.walking .psv-markers{opacity:0;transition-duration:.15s}
+/* 지나가는 지점에서 간판을 보여 주는 동안: 간판만 남기고 화살표·글씨는 숨긴 채 */
+.walking.glance .psv-markers{opacity:1;transition-duration:.3s}
+.walking.glance .psv-marker:not(:has(.sign)){opacity:0!important;pointer-events:none!important}
+.mk .lbl .more{margin-left:8px;padding:2px 7px;border-radius:999px;background:rgba(255,255,255,.25);font-size:12px;font-weight:500}
+/* 자세히 보기 팝업: 휴대폰은 아래에서 올라오는 시트, 넓은 화면은 가운데 창. 내용은 안에서 스크롤 */
+.info{padding:0;border:0;background:transparent;color:var(--ink);max-width:none;max-height:none;width:100%;margin:auto 0 0}
+.info::backdrop{background:rgba(0,0,0,.55)}
+.info .sheet{position:relative;display:flex;flex-direction:column;max-height:88vh;max-height:88dvh;background:var(--panel-solid);border-radius:16px 16px 0 0;box-shadow:0 -4px 24px rgba(0,0,0,.35);padding-bottom:env(safe-area-inset-bottom,0px)}
+.info header{display:flex;align-items:center;gap:8px;padding:10px 8px 10px 20px;border-bottom:1px solid var(--line)}
+.info h2{flex:1;margin:0;font-size:18px;font-weight:600;line-height:1.35}
+.info .speak{flex:none;min-height:40px;padding:0 14px;border:1px solid var(--line);border-radius:999px;background:var(--panel-solid);color:var(--ink);font:inherit;font-size:14px;font-weight:500;cursor:pointer;white-space:nowrap}
+.info .speak[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#fff}
+.info .speak:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+.info .close{flex:none;width:44px;height:44px;border:0;border-radius:10px;background:transparent;color:var(--ink);font-size:26px;line-height:1;cursor:pointer}
+.info .close:focus-visible{outline:3px solid var(--focus);outline-offset:-3px}
+.info .scroll:focus{outline:none}
+.info .scroll{overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;padding:16px 20px 24px}
+.info .lead{margin:0 0 12px;font-weight:600;color:var(--ink);font-size:15px;line-height:1.6}
+.info .scroll p{margin:0 0 12px;font-size:15px;line-height:1.7;color:var(--muted)}
+.info figure{margin:0 0 16px}
+/* 세로로 긴 사진이 팝업을 다 덮지 않게 화면 높이 절반까지만 */
+.info figure img{display:block;width:100%;height:auto;max-height:55vh;object-fit:contain;border-radius:10px;background:var(--line)}
+.info .video{margin:0 0 16px}
+.info .video iframe,.info .video video{display:block;width:100%;aspect-ratio:16/9;border:0;border-radius:10px;background:#000}
+.info .video.tall iframe{aspect-ratio:9/16;max-height:65vh;width:auto;margin:0 auto}
+.info .video video{height:auto;max-height:60vh}
+.info .video .cap{margin-top:6px;font-size:13px;color:var(--muted)}
+.info figcaption{margin-top:6px;font-size:13px;color:var(--muted)}
+/* 아래에 내용이 더 있으면 흐리게 가려서 스크롤할 수 있다는 걸 보여 줌 */
+.info .sheet::after{content:"";position:absolute;left:0;right:0;bottom:env(safe-area-inset-bottom,0px);height:40px;border-radius:0 0 16px 16px;background:linear-gradient(transparent,var(--panel-solid));pointer-events:none;opacity:0;transition:opacity .2s}
+.info .sheet.more::after{opacity:1}
+@media (min-width:720px){
+  .info{width:min(560px,92vw);margin:auto}
+  .info .sheet{max-height:80vh;border-radius:16px}
+  .info .sheet::after{border-radius:0 0 16px 16px}
+}
+.mk .dot{width:20px;height:20px;border-radius:50%;background:var(--lb,#b45309);border:3px solid #fff;box-shadow:0 1px 6px rgba(0,0,0,.45)}
+/* 바닥 화살표: 사진 바닥에 눕혀 그려서 시선을 돌려도 제자리에 있다. 가는 쪽(바깥)을 가리킨다 */
+.farrow{cursor:pointer;color:rgba(255,255,255,.95);filter:drop-shadow(0 0 6px rgba(0,0,0,.55))}
+.farrow svg{display:block;width:100%;height:100%}
+.farrow:hover,.farrow.on{color:#5eead4}
+/* 갈 수 있는 곳 막대: 지점의 화살표마다 칩 하나. 화면 밖 화살표도 여기서 바로 보이고, 누르면 그쪽으로 돌아본다(한 번 더 누르면 이동) */
+.dirs{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 48px);transform:translateX(-50%);z-index:115;display:flex;gap:6px;max-width:calc(100% - 24px);padding:0 4px 6px;overflow-x:auto;scrollbar-width:none;pointer-events:none}
+.dirs::-webkit-scrollbar{display:none}
+.dirs button{pointer-events:auto;flex:none;display:flex;align-items:center;gap:6px;min-height:40px;padding:0 12px 0 10px;border:1px solid var(--line);border-radius:999px;background:var(--panel);color:var(--ink);font:inherit;font-size:14px;font-weight:500;box-shadow:0 2px 10px rgba(0,0,0,.25);cursor:pointer;white-space:nowrap}
+.dirs button .arr{display:inline-block;width:18px;height:18px;transition:transform .2s}
+.dirs button .arr svg{display:block;width:100%;height:100%}
+.dirs button[data-onscreen="true"]{border-color:var(--accent);color:var(--accent)}
+.dirs button:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+/* 걷는 중 표시(.walking)는 #viewer 에 붙고 칩·고르기 창은 그 밖에 있으므로 :has 로 본다 */
+body:has(#viewer.walking) .dirs,.editing .dirs,.gallery-open .dirs{opacity:0;pointer-events:none;transition:opacity .2s}
+/* 목적지 고르기: 바닥 화살표 하나로 갈 수 있는 곳이 여럿일 때(지나가는 지점 너머 갈림) */
+.routepick{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 100px);transform:translateX(-50%);z-index:125;width:min(320px,calc(100% - 32px));display:flex;flex-direction:column;gap:8px;background:var(--panel-solid);color:var(--ink);font-size:15px}
+.routepick #routeList{display:flex;flex-direction:column;gap:6px}
+.routepick #routeList button{min-height:46px;padding:0 14px;border:1px solid var(--accent);border-radius:10px;background:var(--panel-solid);color:var(--ink);font:inherit;font-size:16px;font-weight:600;text-align:left;cursor:pointer}
+.routepick #routeList button:hover{background:var(--accent);color:#fff}
+.routepick #routeList button:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+.routepick #routeClose{align-self:flex-end}
+body:has(#viewer.walking) .routepick{display:none}
+.autohint{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 100px);transform:translateX(-50%);z-index:120;background:var(--panel);color:var(--ink);border-radius:999px;padding:8px 16px;font-size:14px;box-shadow:0 2px 12px rgba(0,0,0,.25);white-space:nowrap;pointer-events:none}
+/* 휴대폰(좁은 화면): 아래쪽 안내 문구가 바닥 화살표·칩을 가리므로 위쪽 제목 카드 아래로, 길면 줄바꿈 */
+/* 휴대폰(좁은 화면)은 시야를 넓혀 사진이 작아지므로 이름표·안내 글씨도 조금 작게(겹치지 않게) */
+@media (max-width:600px){
+  .mk .lbl{font-size:calc(12px * var(--ls,1));padding:calc(5px * var(--lp,1)) calc(9px * var(--lp,1))}
+  .mk .lbl .more{margin-left:6px;padding:1px 6px;font-size:11px}
+  .mk .dot{width:16px;height:16px}
+  .pin .lbl{font-size:13px;padding:5px 10px}
+  .pin .stem{height:26px}
+}
+@media (max-width:600px){.autohint{bottom:auto;top:calc(env(safe-area-inset-top,0px) + 86px);max-width:calc(100% - 32px);white-space:normal;text-align:center;border-radius:14px}}
+/* 바닥 도착 위치: 다음 사진을 찍은 자리. 바닥에 눕혀 그리고, 누르면 그리로 이동 */
+.spot{position:relative;border-radius:50%;cursor:pointer;background:radial-gradient(circle,rgba(255,255,255,.95) 0 9%,rgba(20,184,166,.28) 10% 62%,transparent 63%);box-shadow:0 0 0 9px rgba(255,255,255,.92),0 0 26px 12px rgba(20,184,166,.55)}
+.spot::after{content:"";position:absolute;inset:-9px;border-radius:50%;border:5px solid rgba(94,234,212,.9);animation:spot 1.8s ease-out infinite}
+@keyframes spot{from{transform:scale(1);opacity:.9}to{transform:scale(1.6);opacity:0}}
+@media (prefers-reduced-motion:reduce){.spot::after{animation:none}}
+/* 도착 지점 이름표: 바닥 원 한가운데에 꽂힌 핀. "○○ = 여기"가 보이게 */
+.pin{display:flex;flex-direction:column;align-items:center;cursor:pointer}
+.pin .lbl{white-space:nowrap;padding:7px 13px;border-radius:999px;background:rgba(15,118,110,.95);color:#fff;font:600 15px/1.2 "IBM Plex Sans KR",system-ui,sans-serif;box-shadow:0 2px 10px rgba(0,0,0,.4)}
+/* 화살표·점선 길·도착 원·핀은 한 묶음. 하나에 올리거나 누르고 있으면 그 묶음만 밝아지고 나머지는 흐려진다 */
+.psv-marker.path{filter:drop-shadow(0 0 3px rgba(0,0,0,.6));pointer-events:none}
+#viewer.hl .psv-marker.path{opacity:.2!important}
+#viewer.hl .spot,#viewer.hl .pin,#viewer.hl .farrow{opacity:.3}
+#viewer.hl .psv-marker.path.on{opacity:1!important;stroke-width:9px}
+#viewer.hl .spot.on,#viewer.hl .pin.on,#viewer.hl .farrow.on{opacity:1}
+.pin.on .lbl{background:#0d9488;transform:scale(1.08)}
+.pin .lbl{transition:transform .15s}
+.pin .stem{width:3px;height:34px;background:linear-gradient(rgba(255,255,255,.95),rgba(255,255,255,.4));box-shadow:0 0 4px rgba(0,0,0,.4)}
+/* 새 투어 시작 화면(지점이 하나도 없을 때): 사진을 여러 장 올려 지점을 만든다 */
+.start{width:min(560px,100%);max-height:calc(100dvh - 48px);overflow-y:auto;text-align:left;color:var(--ink);background:var(--panel-solid);font-size:14px}
+.start h1{margin:0 0 4px;font-size:20px}
+.start p{margin:0 0 12px;color:var(--muted);line-height:1.6}
+.start label{display:block;margin-top:10px;font-size:13px;color:var(--muted)}
+.start input[type=text]{display:block;width:100%;margin-top:3px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--panel-solid);color:var(--ink);font:inherit;font-size:15px}
+.start ol{list-style:none;margin:10px 0 0;padding:0;display:flex;flex-direction:column;gap:4px}
+.start li{display:flex;align-items:center;gap:6px}
+.start li img{flex:none;width:72px;height:36px;object-fit:cover;border-radius:4px;background:var(--line)}
+.start li b{flex:none;width:30px;text-align:right;font-variant-numeric:tabular-nums;color:var(--muted)}
+.start li input{flex:1;min-width:0;margin:0}
+.start li button{flex:none;width:32px;height:36px;border:1px solid var(--line);border-radius:8px;background:var(--panel-solid);color:var(--muted);font:inherit;cursor:pointer}
+.start li button:disabled{opacity:.3;cursor:default}
+.start .erow{margin-top:14px}
+.start .estat{color:var(--muted)}
+.boot{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;padding:24px;text-align:center;color:#e2ded6;font-size:14px;line-height:1.6}
+
+/* 키오스크(?kiosk): 길게 눌러 선택·메뉴·화면 확대가 되지 않게 */
+.kiosk body{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;touch-action:pan-x pan-y;overscroll-behavior:none}
+.attract{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 64px);transform:translateX(-50%);z-index:110;max-width:calc(100% - 32px);padding:14px 24px;border-radius:999px;background:var(--panel);color:var(--ink);font-size:18px;font-weight:600;text-align:center;box-shadow:0 2px 12px rgba(0,0,0,.3);pointer-events:none;animation:breathe 2.4s ease-in-out infinite}
+@keyframes breathe{50%{opacity:.55}}
+@media (prefers-reduced-motion:reduce){.attract{animation:none}}
+</style>
+<script>
+// 키오스크: 켤 때 인터넷이 늦게 잡혀 라이브러리를 못 받으면 화면이 멈춘 채 남는다.
+// 서버에 닿을 때까지 기다렸다가 다시 연다(연결 없이 새로 고치면 브라우저 오류 화면에 갇힌다).
+function reloadWhenOnline(delay) {
+  setTimeout(function retry() {
+    fetch(location.href, { cache: 'no-store' }).then(function () { location.reload(); }, function () { setTimeout(retry, 10000); });
+  }, delay);
+}
+if (new URLSearchParams(location.search).has('kiosk')) setTimeout(function () { if (!window.tourBooted) reloadWhenOnline(0); }, 30000);
+</script>
+</head>
+<body>
+<div id="viewer" aria-label="360 사진 뷰어"></div>
+<div class="autohint" id="autoHint" hidden aria-live="polite"></div>
+<nav class="dirs" id="dirs" aria-label="갈 수 있는 곳" hidden></nav>
+<div class="routepick card" id="routePick" role="dialog" aria-labelledby="routeTitle" hidden>
+  <strong id="routeTitle">어디로 갈까요?</strong>
+  <div id="routeList"></div>
+  <button class="btn sm" id="routeClose" type="button">닫기</button>
+</div>
+<div class="sgiz" id="sgiz" hidden><div class="frame"></div><button type="button" data-h="arrow" title="끌어서 화살표 돌리기(Shift: 1° 단위)" aria-label="화살표 돌리기"></button><button type="button" data-h="roll" title="끌어서 판 돌리기" aria-label="판 돌리기">⟳</button><button type="button" data-h="turn" title="좌우로 끌어서 벽 방향 맞추기" aria-label="벽 방향">↔</button><button type="button" data-h="tilt" title="위아래로 끌어서 기울기" aria-label="기울기">↕</button><button type="button" data-h="size" title="끌어서 판 크기(가로·세로 따로, Shift 는 비율 유지). 글씨는 그대로" aria-label="판 크기">↘</button><button type="button" data-h="font" title="끌어서 글씨 크기(오른쪽·위로 크게). 판은 그대로" aria-label="글씨 크기">가</button></div>
+<dialog class="info" id="info" aria-labelledby="infoTitle">
+  <div class="sheet" id="infoSheet">
+    <header><h2 id="infoTitle"></h2><button class="speak" id="infoSpeak" type="button" aria-pressed="false" hidden>🔊 읽어 주기</button><button class="close" id="infoClose" type="button" aria-label="닫기">×</button></header>
+    <div class="scroll" id="infoBody" tabindex="-1" autofocus></div>
+  </div>
+</dialog>
+<div class="boot" id="boot">투어를 불러오는 중…</div>
+
+<div class="top" id="ui" hidden>
+  <div class="stack">
+    <div class="card title"><h1 id="tourTitle"></h1><div class="here" id="nodeName"></div></div>
+    <div class="card detail" id="detail" hidden aria-live="polite"><h2 id="dTitle"></h2><p id="dText"></p></div>
+    <div class="card edit" id="picker" hidden>
+      <div class="ehead">
+        <div class="erow"><strong>편집</strong><span class="estat" id="eStatus">바뀐 것 없음</span><button class="btn sm" id="eUndo" type="button" disabled title="⌘Z">← 되돌리기</button><button class="btn sm" id="eRedo" type="button" disabled title="⌘⇧Z">다시 →</button><button class="btn sm primary" id="eSave" type="button" disabled title="⌘S">저장</button></div>
+        <div class="erow ehere">
+          <button class="btn sm here" id="eHere" type="button" aria-expanded="false" aria-controls="eNodePop" title="지점 목록 열기 · 순서 바꾸기">📍 <span id="eHereName"></span> ▾</button>
+          <label class="echeck sync" title="초등·중등·전체 투어에 같은 지점이 있으면 화살표·도착 자리·지점 이름·새 지점을 함께 저장. 안내 글씨·안내판·지점 지우기는 지금 연 투어에만 저장"><input type="checkbox" id="eSync" checked><span>함께 저장</span></label>
+          <button class="btn sm" id="eHelp" type="button" aria-pressed="false" title="도움말 보이기/숨기기">?</button>
+        </div>
+        <div class="etabs" id="etabs" role="tablist" aria-label="편집 구역">
+          <button role="tab" type="button" data-tab="node" aria-selected="true">지점</button>
+          <button role="tab" type="button" data-tab="move" aria-selected="false">이동</button>
+          <button role="tab" type="button" data-tab="label" aria-selected="false">글씨</button>
+          <button role="tab" type="button" data-tab="sign" aria-selected="false">안내판</button>
+          <button role="tab" type="button" data-tab="tour" aria-selected="false">설정</button>
+        </div>
+        <div class="enodepop" id="eNodePop" hidden>
+          <p class="hint">이름을 누르면 그 지점으로 갑니다. ▲▼로 순서를 바꿉니다.</p>
+          <ol class="enodes" id="eNodes"></ol>
+        </div>
+      </div>
+
+      <section class="etab" data-tab="node">
+        <div class="eform">
+          <label>이름<input id="nName" autocomplete="off"></label>
+          <label>사진 파일 <small id="nPhoto"></small></label>
+          <label>키오스크 도착 음성 <small>(비우면 "○○입니다.")</small><input id="nSay" autocomplete="off"></label>
+          <label class="erow echeck"><input type="checkbox" id="ePass"><span>그냥 지나가는 지점 (자동 걷기 · 목록에서 숨김, 연결이 딱 2개일 때만)</span></label>
+          <div class="erow"><span class="estat" id="eStartNow"></span><button class="btn sm" id="eStart" type="button">지금 방향으로</button></div>
+        </div>
+        <h3>지점 추가 · 삭제</h3>
+        <p class="hint">새 사진은 <b>지금 지점 다음</b>에 들어갑니다. 여러 장을 고르면 파일 이름 순서대로 차례로 이어집니다. 순서는 위 📍 지점 목록에서 ▲▼로 바꿉니다.</p>
+        <label class="enew">새 지점 이름 <small>(한 장 올릴 때. 비우거나 여러 장이면 사진 파일 이름)</small><input id="eAddName" autocomplete="off" placeholder="예: 1층 복도"></label>
+        <div class="erow"><label class="btn sm efile">+ 사진 올려 새 지점 (여러 장 가능)<input type="file" id="eAddPhoto" accept="image/jpeg,image/png" multiple hidden></label><button class="btn sm danger" id="eDelNode" type="button">이 지점 지우기</button></div>
+        <p class="estat" id="eAddNow"></p>
+      </section>
+
+      <section class="etab" data-tab="move" hidden>
+        <p class="enote">편집 중에도 화살표를 누르면 방문자처럼 목적지까지 갑니다. 지나가는 지점을 고치려면 「어디로 갈까요?」 맨 아래 <b>「○○에서 멈춤 (편집용)」</b>을 고르거나 위 📍 지점 목록에서 고르세요. 아래 칩(갈 수 있는 곳)은 [편집]을 꺼야 보입니다.</p>
+        <h3>이동 화살표 · 도착 자리</h3>
+        <p class="hint">가는 곳을 고른 뒤, 사진에서 <b>다음 사진을 찍은 바닥</b>을 누르세요. 고르지 않았을 때는 화살표를 눌러 다른 지점으로 이동합니다. 원·화살표는 끌어서 옮길 수도 있습니다.</p>
+        <div class="elinks" id="eLinks" role="radiogroup" aria-label="가는 곳"></div>
+        <div class="erow" id="ePickRow" hidden><span class="estat">바닥을 누르면:</span><button class="btn sm" id="pickTarget" type="button" aria-pressed="true">도착 자리</button><button class="btn sm" id="pickArrow" type="button" aria-pressed="false">출발 화살표</button><button class="btn sm" id="arrowAuto" type="button" hidden title="출발 화살표를 다시 자동 자리로">자동</button></div>
+        <label class="enew" id="eLabelRow" hidden>화살표 이름표 <small id="eLinkLabelNow"></small><input id="eLinkLabel" autocomplete="off"></label>
+        <label class="enew" id="eDestsRow" hidden>이 화살표로 갈 수 있는 곳 <small id="eDestsNow"></small><input id="eDests" autocomplete="off"></label>
+        <p class="hint" id="eDestsHint">지점 번호를 쉼표로 적으면(예: 07, 08, 04) 방문자가 이 화살표에서 고를 목적지가 됩니다. 중간 지점은 지나가고 그 지점에서 멈춥니다. 비우면 자동(지나가는 지점 너머의 멈추는 곳). 목록에 다른 이름으로 보이게 하려면 <b>번호=이름</b>(예: 05=나가기, 07, 08).</p>
+        <div class="erow" id="eChipRow" hidden><span class="estat">이름 칩 화살표 <span class="chiparr" id="chipArr"></span> <small id="chipNow"></small></span><button class="btn sm" id="chipHere" type="button" title="화면 가운데(지금 보는 쪽)를 가리키게">지금 보는 쪽으로</button><button class="btn sm" id="chipAuto" type="button" hidden title="바닥 화살표와 같은 방향으로">자동</button></div>
+        <div id="ePrevBox" hidden>
+          <p class="estat" id="ePrevName"></p>
+          <div class="eprev" id="ePrev" aria-label="다음 사진 미리보기"></div>
+          <p class="hint">미리보기에서 <b>도착했을 때 정면에 보일 곳</b>을 누르세요(바로 정해짐). 끌어서 가운데 점선에 맞춘 뒤 버튼을 눌러도 됩니다.</p>
+          <div class="erow"><span class="estat" id="ePrevNow"></span><button class="btn sm" id="ePrevSave" type="button">이 방향으로 도착</button></div>
+        </div>
+        <div class="erow"><select id="eConnTo" aria-label="새로 이을 지점"></select><button class="btn sm" id="eConn" type="button">연결 추가</button></div>
+        <h3>이 지점에 도착했을 때 보는 방향</h3>
+        <p class="hint">화면을 돌려 보고 싶은 방향을 맞춘 뒤 누르세요. (위 미리보기에서 눌러 정해도 같은 값입니다)</p>
+        <label class="erow"><span>들어온 곳</span><select id="eFrom"></select></label>
+        <div class="erow"><span class="estat" id="eArriveNow"></span><button class="btn sm" id="eArrive" type="button">지금 방향으로</button></div>
+      </section>
+
+      <section class="etab" data-tab="label" hidden>
+        <p class="hint">글씨를 고르면 내용을 고칠 수 있습니다. 사진 속 글씨를 눌러도 골라지고, 글씨·점은 끌어서 옮길 수 있습니다.</p>
+        <div class="elinks" id="eLabels"></div>
+        <div class="erow"><button class="btn sm" id="eLabelNew" type="button">+ 새 글씨</button><span class="estat" id="ePlaceNow"></span></div>
+        <div class="eform" id="eLabelForm" hidden>
+          <label>글씨<input id="lText" autocomplete="off"></label>
+          <div class="ecolors"><span>모양</span>
+            <div class="erow"><div class="seg" id="lShape" role="group" aria-label="안내 글씨 모양"><button type="button" data-v="tag">기본 태그</button><button type="button" data-v="pill">알약</button><button type="button" data-v="bubble">말풍선</button><button type="button" data-v="card">카드</button><button type="button" data-v="plain">글씨만</button></div></div></div>
+          <div class="erow cfields">
+            <div class="cfield"><span>상자 색</span><button type="button" class="cbtn" id="lBg"><i></i><span></span></button></div>
+            <div class="cfield"><span>글씨 색</span><button type="button" class="cbtn" id="lFg"><i></i><span></span></button></div>
+            <div class="cfield" id="lLineRow"><span>선 색</span><button type="button" class="cbtn" id="lLine"><i></i><span></span></button></div>
+          </div>
+          <label>한 줄 설명 <small>(누르면 맨 위에 굵게)</small><input id="lDetail" autocomplete="off"></label>
+          <label>팝업 긴 설명 <small>(빈 줄로 문단 나눔)</small><textarea id="lBody" rows="4"></textarea></label>
+          <details class="more">
+            <summary>자세히 — 크기 · 투명도 · 선</summary>
+            <label>글씨 크기 <output id="lScaleV"></output><input type="range" id="lScale" min="60" max="250" step="5"></label>
+            <label>상자 크기 <small>(글씨 둘레 여백)</small> <output id="lPadV"></output><input type="range" id="lPad" min="30" max="400" step="10"></label>
+            <label>바탕 투명도 <small>(낮을수록 뒤가 비침)</small> <output id="lAlphaV"></output><input type="range" id="lAlpha" min="10" max="100" step="5"></label>
+            <div class="erow"><button class="btn sm" id="lLineSame" type="button">선 색을 상자 색과 같게</button></div>
+          </details>
+          <details class="more">
+            <summary>팝업에 넣을 것 — 영상 · 사진 · 음성</summary>
+            <label>영상 <small>(한 줄에 하나: 유튜브 주소 | 설명)</small><textarea id="lVideos" rows="2" placeholder="https://www.youtube.com/watch?v=… | 사용법 영상"></textarea></label>
+            <label>사진 <small>(한 줄에 하나: img/info/파일.jpg | 설명)</small><textarea id="lImages" rows="2"></textarea></label>
+            <label>읽어 주기 음성 파일 <small>(비우면 기계 음성)</small><input id="lAudio" autocomplete="off" placeholder="img/info/파일.m4a"></label>
+            <div class="erow"><label class="btn sm efile">사진·영상·음성 파일 올리기<input type="file" id="lUpload" accept="image/*,video/mp4,video/webm,audio/*" hidden></label><span class="estat" id="lUpNow"></span></div>
+          </details>
+          <div class="erow"><button class="btn sm" id="lMove" type="button">위치 옮기기</button><button class="btn sm" id="lBox" type="button">글씨 따로 빼기</button><button class="btn sm" id="lUnbox" type="button" hidden>다시 붙이기</button><button class="btn sm" id="lPreview" type="button">팝업 미리 보기</button><button class="btn sm danger" id="lDelete" type="button">지우기</button></div>
+        </div>
+      </section>
+
+      <section class="etab" data-tab="sign" hidden>
+        <p class="hint">벽·기둥·문에 붙거나 바닥에 서 있는 판입니다. [+ 새 안내판] 뒤 사진에서 붙일 자리를 한 번 누르세요. 판을 고르면 노란 손잡이가 나옵니다:
+          <b>↘</b> 판 크기(가로·세로) · <b>가</b> 글씨 크기 · <b>↔</b> 벽 방향 · <b>↕</b> 기울기 · <b>⟳</b> 돌리기 · <b>화살표</b> 점선 원을 끌면 화살표가 돕니다. 판 바탕을 끌면 판이, <b>큰·작은 글씨</b>를 끌면 그 글씨만 옮겨집니다.</p>
+        <div class="elinks" id="eSigns"></div>
+        <div class="erow"><button class="btn sm" id="eSignNew" type="button">+ 새 안내판</button><button class="btn sm" id="eSignPaste" type="button" hidden>붙여넣기</button><span class="estat" id="eSignNow"></span></div>
+        <div class="eform" id="eSignForm" hidden>
+          <div class="ecolors"><span>형태</span>
+            <div class="erow"><div class="seg" id="sKind" role="group" aria-label="안내판 형태"><button type="button" data-v="wall">벽 부착</button><button type="button" data-v="xbanner">X배너</button><button type="button" data-v="aframe">A형 입간판</button><button type="button" data-v="stand">프레임 스탠드</button></div></div></div>
+          <label>큰 글씨 <small>(Enter 로 줄바꿈)</small><textarea id="sText" rows="2"></textarea></label>
+          <label>작은 글씨 <small>(비워도 됨, Enter 로 줄바꿈)</small><textarea id="sSub" rows="2" placeholder="예: 들어가서 바로 오른쪽"></textarea></label>
+          <label>화살표 <small>(판 위 화살표를 끌어서 돌려도 됨)</small><select id="sArrow">
+            <option value="">없음</option><option value="-90">← 왼쪽</option><option value="90">→ 오른쪽</option>
+            <option value="0">↑ 앞으로(위)</option><option value="180">↓ 아래</option>
+            <option value="-45">↖ 왼쪽 앞</option><option value="45">↗ 오른쪽 앞</option>
+            <option value="-135">↙ 왼쪽 아래</option><option value="135">↘ 오른쪽 아래</option>
+            <option value="custom" disabled>직접 돌림</option>
+          </select></label>
+          <div class="erow cfields">
+            <div class="cfield"><span>판 색</span><button type="button" class="cbtn" id="sBg"><i></i><span></span></button></div>
+            <div class="cfield"><span>글씨 색</span><button type="button" class="cbtn" id="sFg"><i></i><span></span></button></div>
+            <div class="cfield" id="sFrameRow"><span>틀·다리 색</span><button type="button" class="cbtn" id="sFrame"><i></i><span></span></button></div>
+          </div>
+          <details class="more">
+            <summary>자세히 — 글씨 정렬 · 위치 · 크기</summary>
+            <div class="ecolors"><span>큰 글씨 정렬</span>
+              <div class="erow"><div class="seg" id="sAlign" role="group" aria-label="큰 글씨 가로 정렬"><button type="button" data-v="left">⇤ 왼쪽</button><button type="button" data-v="center">가운데</button><button type="button" data-v="right">오른쪽 ⇥</button></div></div>
+              <span>작은 글씨 정렬</span>
+              <div class="erow"><div class="seg" id="sSubAlign" role="group" aria-label="작은 글씨 가로 정렬"><button type="button" data-v="left">⇤ 왼쪽</button><button type="button" data-v="center">가운데</button><button type="button" data-v="right">오른쪽 ⇥</button></div></div>
+              <span>판 안 세로 위치 <small>(판 높이가 글씨보다 클 때)</small></span>
+              <div class="erow"><div class="seg" id="sVAlign" role="group" aria-label="세로 정렬"><button type="button" data-v="top">⤒ 위</button><button type="button" data-v="middle">가운데</button><button type="button" data-v="bottom">아래 ⤓</button></div></div>
+              <span>글씨 위치 <small>(판을 고른 뒤 사진에서 글씨를 끌면 그 자리로)</small></span>
+              <div class="erow"><button class="btn sm" id="sTextPosReset" type="button">큰 글씨 제자리로</button><button class="btn sm" id="sSubPosReset" type="button">작은 글씨 제자리로</button><span class="estat" id="sPosNow"></span></div></div>
+            <label>글씨 크기 <small>(px)</small> <output id="sFontV"></output><input type="range" id="sFont" min="8" max="200" step="1"></label>
+            <label>큰 글씨 크기 <output id="sTextScaleV"></output><input type="range" id="sTextScale" min="40" max="250" step="5"></label>
+            <label>작은 글씨 크기 <output id="sSubScaleV"></output><input type="range" id="sSubScale" min="40" max="250" step="5"></label>
+          </details>
+          <details class="more">
+            <summary>자세히 — 화살표 · 그림</summary>
+            <label id="sArrowDegRow">화살표 각도 <output id="sArrowDegV"></output><input type="range" id="sArrowDeg" min="-180" max="180" step="1"></label>
+            <div class="ecolors" id="sArrowPosRow"><span>화살표 자리</span>
+              <div class="erow"><div class="seg" id="sArrowPos" role="group" aria-label="화살표 자리"><button type="button" data-v="side">글씨 옆</button><button type="button" data-v="below">글씨 아래</button><button type="button" data-v="above">글씨 위</button></div></div></div>
+            <label id="sArrowScaleRow">화살표 크기 <output id="sArrowScaleV"></output><input type="range" id="sArrowScale" min="40" max="400" step="5"></label>
+            <label>그림·사진 <small>(img/info/파일.png, 글씨 위에 들어감)</small><input id="sImage" autocomplete="off" placeholder="img/info/그림.png"></label>
+            <div class="erow"><label class="btn sm efile">그림 파일 올리기<input type="file" id="sUpload" accept="image/*" hidden></label><span class="estat" id="sUpNow"></span></div>
+          </details>
+          <details class="more">
+            <summary>자세히 — 판 크기 · 각도 · 투명도</summary>
+            <p class="hint">화면의 노란 손잡이로도 같은 값을 바꿀 수 있습니다.</p>
+            <label>판 너비 <output id="sSizeV"></output><input type="range" id="sSize" min="40" max="1400" step="10"></label>
+            <label>판 높이 <small>(0 = 글씨에 맞춰 자동)</small> <output id="sHeightV"></output><input type="range" id="sHeight" min="0" max="900" step="5"></label>
+            <label>벽 방향 (좌우로 돌리기) <output id="sTurnV"></output><input type="range" id="sTurn" min="-85" max="85" step="1"></label>
+            <label>위아래 기울기 <output id="sTiltV"></output><input type="range" id="sTilt" min="-70" max="70" step="1"></label>
+            <label>돌리기(기울어진 판) <output id="sRollV"></output><input type="range" id="sRoll" min="-90" max="90" step="1"></label>
+            <label>판 투명도 <small>(낮을수록 뒤가 비침, 글씨는 그대로)</small> <output id="sAlphaV"></output><input type="range" id="sAlpha" min="10" max="100" step="5"></label>
+          </details>
+          <div class="erow"><button class="btn sm" id="sFace" type="button">정면으로</button><button class="btn sm" id="sMove" type="button">위치 옮기기</button><button class="btn sm" id="sClip" type="button" title="다른 장면에 붙여 넣으려고 기억해 둠">복사 (다른 장면에 붙이기)</button><button class="btn sm" id="sCopy" type="button" title="이 장면 옆자리에 하나 더">여기 하나 더</button><button class="btn sm danger" id="sDelete" type="button">지우기</button></div>
+        </div>
+      </section>
+
+      <section class="etab" data-tab="tour" hidden>
+        <h3>투어 설정</h3>
+        <div class="eform">
+          <label>제목<input id="tTitle" autocomplete="off"></label>
+          <label>부제<input id="tSubtitle" autocomplete="off"></label>
+          <label>처음 여는 지점<select id="tStart"></select></label>
+        </div>
+        <h3>좌표 보기</h3>
+        <p class="coords" id="coords">사진을 클릭하세요</p>
+        <textarea class="snippet" id="snippet" readonly aria-label="설정 파일에 넣을 내용"></textarea>
+      </section>
+    </div>
+    <div class="cpop" id="cpop" hidden role="dialog" aria-label="색 고르기">
+      <div class="grp">진한 색</div><div class="swatches" id="cpopDark"></div>
+      <div class="grp">파스텔</div><div class="swatches" id="cpopPastel"></div>
+      <div class="erow"><label class="ecolor">직접 고르기<input type="color" id="cpopInput"></label><button class="btn sm" id="cpopReset" type="button"></button><button class="btn sm" id="cpopClose" type="button">닫기</button></div>
+    </div>
+  </div>
+  <button class="btn" id="modeBtn" type="button" aria-pressed="false" hidden>편집</button>
+  <button class="btn" id="homeBtn" type="button" hidden>처음으로</button>
+</div>
+<div class="attract" id="attract" hidden></div>
+
+<script type="importmap">
+{"imports":{
+  "three":"https://cdn.jsdelivr.net/npm/three@0.185.1/build/three.module.js",
+  "@photo-sphere-viewer/core":"https://cdn.jsdelivr.net/npm/@photo-sphere-viewer/core@5.15.1/index.module.js",
+  "@photo-sphere-viewer/markers-plugin":"https://cdn.jsdelivr.net/npm/@photo-sphere-viewer/markers-plugin@5.15.1/index.module.js",
+  "@photo-sphere-viewer/virtual-tour-plugin":"https://cdn.jsdelivr.net/npm/@photo-sphere-viewer/virtual-tour-plugin@5.15.1/index.module.js",
+  "@photo-sphere-viewer/gallery-plugin":"https://cdn.jsdelivr.net/npm/@photo-sphere-viewer/gallery-plugin@5.15.1/index.module.js",
+  "@photo-sphere-viewer/autorotate-plugin":"https://cdn.jsdelivr.net/npm/@photo-sphere-viewer/autorotate-plugin@5.15.1/index.module.js"
+}}
+</script>
+<script type="module">
+import { Viewer, EquirectangularAdapter } from '@photo-sphere-viewer/core';
+import { MarkersPlugin } from '@photo-sphere-viewer/markers-plugin';
+import { VirtualTourPlugin } from '@photo-sphere-viewer/virtual-tour-plugin';
+import { GalleryPlugin } from '@photo-sphere-viewer/gallery-plugin';
+
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+window.tourBooted = true;
+
+// 주소 뒤에 붙이는 설정:  ?tour=chem.json  → 같은 폴더의 다른 설정 파일,  &kiosk → 키오스크 모드
+const params = new URLSearchParams(location.search);
+const kiosk = params.has('kiosk');
+const tourFile = /^[\w가-힣.-]+\.json$/.test(params.get('tour') || '') ? params.get('tour') : 'tour.json';
+const { AutorotatePlugin } = kiosk ? await import('@photo-sphere-viewer/autorotate-plugin') : {};
+// 처음 보는 넓이(시야). 휴대폰 세로 화면은 가로로 보이는 범위가 약 40°뿐이라 간판·글씨가 잘린다 →
+// 세로 화면이면 뷰어의 최대 시야(maxFov, 세로 기준)를 넓히고 가장 넓게(zoom 0) 보여 가로 약 70°가 되게 한다. 가로 화면·컴퓨터는 예전 그대로.
+const PORTRAIT_HFOV = 70;
+function fitView() {
+  const a = innerWidth / innerHeight;
+  if (a >= 0.9) return { maxFov: 90, zoom: 20 };
+  const v = 2 * Math.atan(Math.tan(PORTRAIT_HFOV / 2 * Math.PI / 180) / a) * 180 / Math.PI;   // 가로 66°에 필요한 세로 시야
+  return { maxFov: Math.round(Math.min(118, Math.max(90, v))), zoom: 0 };
+}
+let VIEW = fitView();
+const ZOOM = VIEW.zoom;   // 처음 여는 넓이(지점 목록·처음으로 이동할 때도 이 넓이로)
+
+let tour;
+try {
+  const res = await fetch(tourFile, { cache: 'no-store' });
+  if (!res.ok) throw new Error(res.status);
+  tour = await res.json();
+} catch (e) {
+  $('boot').textContent = `${tourFile}을 불러오지 못했습니다. 로컬 서버(tools/serve.sh)로 열었는지 확인하세요.`;
+  if (kiosk) reloadWhenOnline(15000);
+  throw e;
+}
+
+// ── 사진 올리기(새 투어 시작 화면·편집기 공통) ──
+// 파일 이름에서 지점 이름을 짐작: 확장자와 앞의 번호·기호를 뺀다("03_로비.jpg" → "로비")
+const panoName = f => f.name.replace(/\.[^.]+$/, '').replace(/^[\d\-_a-z]*[_\-\s]+/i, '').trim();
+const byFileName = (a, b) => a.name.localeCompare(b.name, 'ko', { numeric: true });   // 1, 2, 10 순서
+// 파노라마 한 장을 img/ 에 "번호_이름.jpg" 로 올린다(띄어쓰기·특수문자는 뺌). 서버가 6000px 로 줄이고 썸네일도 만든다
+async function uploadPano(f, id, name) {
+  const fname = `${id}_${name.replace(/[^\w가-힣]+/g, '')}${(f.name.match(/\.[^.]+$/) || ['.jpg'])[0].toLowerCase()}`;
+  const res = await fetch('__upload?dir=img&name=' + encodeURIComponent(fname), { method: 'POST', body: f });
+  const r = await res.json().catch(() => ({ ok: false, error: `서버 응답 ${res.status}` }));
+  if (!r.ok) throw new Error(r.error);
+  return r;
+}
+// 새 투어(지점이 하나도 없음): 뷰어에 띄울 사진이 없으므로, 시작 화면에서 사진을 올려 지점을 만든 뒤 편집기로 넘어간다
+if (!Array.isArray(tour.nodes) || !tour.nodes.length) {
+  tour.nodes = [];
+  const local = /^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname);
+  if (!local) { $('boot').textContent = '아직 지점이 없는 투어입니다. 이 컴퓨터에서 tools/serve.sh 로 열어 사진을 올려 주세요.'; }
+  else startNewTour();
+  await new Promise(() => {});   // 여기서 멈춤(뷰어는 만들지 않음). 투어를 만들면 새로 고쳐 편집기로 연다
+}
+function startNewTour() {
+  const boot = $('boot');
+  boot.innerHTML = `<div class="card start">
+    <h1>새 360 투어 만들기</h1>
+    <p>360 사진(가로:세로 2:1)을 <b>걸어가는 순서대로</b> 골라 올리면 사진마다 지점이 하나씩 만들어지고 앞뒤 지점이 화살표로 이어집니다.
+      순서·이름·화살표 방향은 만든 뒤 편집기에서 언제든 바꿀 수 있습니다.</p>
+    <label>투어 제목<input type="text" id="stTitle" autocomplete="off" placeholder="예: 우리 학교 360 투어"></label>
+    <div class="erow"><label class="btn efile" style="margin:0;display:inline-flex;align-items:center">사진 고르기 (여러 장)<input type="file" id="stFiles" accept="image/jpeg,image/png" multiple hidden></label><span class="estat" id="stNow">아직 고른 사진이 없습니다</span></div>
+    <ol id="stList"></ol>
+    <div class="erow"><button class="btn primary" id="stGo" type="button" disabled>투어 만들기</button><span class="estat" id="stMsg"></span></div>
+  </div>`;
+  $('stTitle').value = tour.title || '';
+  let items = [];   // { file, name, url }
+  const draw = () => {
+    $('stList').replaceChildren(...items.map((it, i) => {
+      const li = document.createElement('li');
+      li.innerHTML = `<b>${String(i + 1).padStart(2, '0')}</b><img alt="" src="${it.url}"><input type="text" aria-label="${i + 1}번 지점 이름">`;
+      const inp = li.querySelector('input');
+      inp.value = it.name; inp.oninput = () => { it.name = inp.value; };
+      for (const [d, t] of [[-1, '▲'], [1, '▼']]) {
+        const b = document.createElement('button');
+        b.type = 'button'; b.textContent = t; b.setAttribute('aria-label', `${i + 1}번 ${d < 0 ? '위로' : '아래로'}`);
+        b.disabled = i + d < 0 || i + d >= items.length;
+        b.onclick = () => { items.splice(i, 1); items.splice(i + d, 0, it); draw(); };
+        li.append(b);
+      }
+      const x = document.createElement('button');
+      x.type = 'button'; x.textContent = '✕'; x.setAttribute('aria-label', `${i + 1}번 빼기`);
+      x.onclick = () => { URL.revokeObjectURL(it.url); items.splice(i, 1); draw(); };
+      li.append(x);
+      return li;
+    }));
+    $('stNow').textContent = items.length ? `${items.length}장 · 이름을 고치고 ▲▼로 순서를 맞추세요` : '아직 고른 사진이 없습니다';
+    $('stGo').disabled = !items.length;
+  };
+  $('stFiles').addEventListener('change', () => {
+    const add = [...$('stFiles').files].sort(byFileName); $('stFiles').value = '';
+    items.push(...add.map((file, i) => ({ file, name: panoName(file) || `지점 ${items.length + i + 1}`, url: URL.createObjectURL(file) })));
+    draw();
+  });
+  $('stGo').addEventListener('click', async () => {
+    $('stGo').disabled = true;
+    const nodes = [];
+    try {
+      for (const [i, it] of items.entries()) {
+        const id = String(i + 1).padStart(2, '0'), name = it.name.trim() || `지점 ${i + 1}`;
+        $('stMsg').textContent = `올리는 중… ${i + 1}/${items.length} (${name})`;
+        const r = await uploadPano(it.file, id, name);
+        nodes.push({ id, name, photo: r.path, startYaw: 0, links: [], labels: [] });
+      }
+      // 앞뒤 지점을 잇는다. 방향은 임시(앞 0°, 뒤 180°)이므로 편집기 「이동」 탭에서 도착 자리를 찍어 맞춘다(check 표시)
+      nodes.forEach((n, i) => {
+        if (i > 0) n.links.push({ to: nodes[i - 1].id, yaw: 180, pitch: -10, check: true });
+        if (i < nodes.length - 1) n.links.push({ to: nodes[i + 1].id, yaw: 0, pitch: -10, check: true });
+      });
+      const made = { ...tour, title: $('stTitle').value.trim() || '360 투어', subtitle: tour.subtitle || '화살표를 눌러 이동하세요', start: nodes[0].id, nodes };
+      $('stMsg').textContent = '저장하는 중…';
+      const res = await fetch('__save', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ file: tourFile, tour: made, sync: false }) });
+      const r = await res.json().catch(() => ({ ok: false, error: `서버 응답 ${res.status}` }));
+      if (!r.ok) throw new Error(r.error);
+      const q = new URLSearchParams(location.search); q.set('edit', '');
+      location.search = q.toString().replace(/=(&|$)/g, '$1');   // 편집기로 연다
+    } catch (e) {
+      $('stMsg').textContent = `못 만듦: ${e.message} (tools/serve.sh 로 연 서버에서만 됩니다). 이미 올라간 사진은 img/ 에 남아 있습니다`;
+      $('stGo').disabled = false;
+    }
+  });
+}
+
+// 지점 목록·편집 창의 작은 사진: tools/make_thumbs.py 가 만든 img/thumb/ 목록(없으면 원본을 그대로 씀).
+// 원본은 한 장 2~3MB 라 목록을 열면 수십 MB 를 받고, 늦거나 끊긴 사진은 빈 그림으로 남았다.
+let THUMBS = {};
+try { const r = await fetch('img/thumb/index.json', { cache: 'no-store' }); if (r.ok) THUMBS = await r.json(); } catch (_) {}
+const thumbOf = n => n.thumbnail || THUMBS[n.photo] || n.photo;
+
+// 걷기 설정 (아래 걷기 코드와 도착 거리 계산에서 함께 씀)
+const WALK = { distance: 3, seconds: 1.5, signPause: 0, ...tour.walk };   // signPause: 지나가는 지점에 간판이 있으면 멈춰 돌아보는 시간(초). 기본 0 = 멈추지 않고 간판만 보이며 지나감   // distance: 걷는 거리(사진 구 반지름 10 기준, 0이면 겹치기만), seconds: 겹쳐 바꾸는 시간
+if (matchMedia('(prefers-reduced-motion: reduce)').matches) WALK.distance = 0;
+const findNode = id => tour.nodes.find(n => n.id === id);
+const findLink = (fromId, toId) => findNode(fromId)?.links?.find(l => l.to === toId);
+// 화살표로 도착했을 때 보는 방향(도°): 화살표에 "arrive"가 있으면 그 방향,
+// 없으면 걸어온 방향 유지(되돌아가는 화살표의 반대쪽), 되돌아가는 화살표도 없으면 startYaw
+function arriveFor(fromId, toId) {
+  const l = findLink(fromId, toId), back = findLink(toId, fromId);
+  if (l?.arrive) return { yaw: l.arrive.yaw, pitch: l.arrive.pitch ?? 0 };
+  return { yaw: back ? back.yaw + 180 : findNode(toId)?.startYaw ?? 0, pitch: 0 };
+}
+// 이동할 때 돌아볼 방향: 도착 위치(target)가 있으면 그쪽, 없으면 화살표 방향
+const headingYaw = (fromId, toId) => { const l = findLink(fromId, toId); return l?.target?.yaw ?? l?.yaw; };
+// 걸어 들어가는 정도: 도착 위치가 멀면(바닥 pitch가 수평에 가까우면) 길게, 가까우면 짧게.
+// 눈높이 1.5m에서 pitch −20°(약 4m 앞)를 기본 거리(WALK.distance)로 본다.
+function walkDistance(fromId, toId) {
+  const tp = findLink(fromId, toId)?.target?.pitch;
+  if (tp > -3) return WALK.distance * 1.3;   // 올라가는 계단처럼 도착 자리가 눈높이보다 위: 거리를 알 수 없어 조금 길게
+  const p = Math.abs(tp ?? 0);
+  if (!p) return WALK.distance;
+  const k = Math.tan(20 * Math.PI / 180) / Math.tan(Math.max(p, 5) * Math.PI / 180);
+  return WALK.distance * Math.min(2, Math.max(0.5, k));
+}
+// 바닥 점선 길: 바닥 화살표 자리(from)에서 도착 원까지 바닥 위 직선을 사진 좌표로 바꿔 곡선으로 그린다.
+// 화살표·길·원·핀 모두 사진 바닥에 고정되므로 시선을 돌려도 한 묶음으로 보인다.
+const RAD = Math.PI / 180;
+// 도착 자리가 수평선 위(올라가는 계단 등)면 바닥 평면으로 잇지 못하므로 사진 좌표로 곧게 잇는다.
+const MAX_UP = 50;   // 도착 자리는 수평선 위 50°까지 찍을 수 있다(그보다 위는 천장·하늘)
+function floorPath(from, target) {
+  if (from.pitch > -3) return null;
+  if (target.pitch > -3) return leaderPath(from, target).slice(0, 12);   // 원 한가운데 핀과 겹치지 않게 조금 앞에서 멈춤
+  if (target.pitch <= from.pitch + 3) return null;
+  const toFloor = (yaw, pitch) => { const d = 1 / Math.tan(-pitch * RAD); return [d * Math.sin(yaw * RAD), d * Math.cos(yaw * RAD)]; };
+  const [ax, ay] = toFloor(from.yaw, from.pitch), [bx, by] = toFloor(target.yaw, Math.min(target.pitch, -2));
+  const pts = [];
+  for (let i = 0; i <= 20; i++) {
+    const t = i / 20 * 0.92;   // 원 한가운데 핀과 겹치지 않게 조금 앞에서 멈춤
+    const x = ax + (bx - ax) * t, y = ay + (by - ay) * t;
+    pts.push([Math.atan2(x, y), -Math.atan(1 / Math.hypot(x, y))]);
+  }
+  return pts;
+}
+// 따로 뺀 글씨의 선: 점(a)에서 글씨 자리(b)까지 사진 좌표로 곧게 잇는다(yaw 가 ±180°를 넘어가도 짧은 쪽으로)
+function leaderPath(a, b) {
+  const dy = ((b.yaw - a.yaw) % 360 + 540) % 360 - 180, pts = [];
+  for (let i = 0; i <= 12; i++) { const t = i / 12; pts.push([(a.yaw + dy * t) * RAD, (a.pitch + (b.pitch - a.pitch) * t) * RAD]); }
+  return pts;
+}
+// 바닥 원 크기: 멀수록 작게 (마커는 모두 같은 거리에 그려지므로 직접 줄인다)
+const spotSize = pitch => Math.round(560 * Math.sin(Math.min(Math.abs(pitch), 60) * Math.PI / 180));
+
+// '로/으로' 조사: 받침이 없거나 ㄹ 받침이면 '로'
+const ro = word => {
+  const c = (word || '').trim().slice(-1).charCodeAt(0) - 0xAC00;
+  if (!(c >= 0 && c < 11172)) return '(으)로';
+  const jong = c % 28;
+  return jong === 0 || jong === 8 ? '로' : '으로';
+};
+// fromId 에서 toId 화살표로 나갔을 때 **멈출 수 있는 곳**(목적지)들: [{ id, name, path }]. path = 거쳐 가는 지점들(마지막이 목적지).
+// 지나가는 지점("pass")은 멈추지 않고 그 너머로 이어 본다. 갈림이 있으면 목적지가 여럿이 된다
+// (예: 현관 → 지구과학실 앞(지나감) → 지구과학실 / 무한상상실 앞(지나감) → 무한상상실·화학실 앞).
+// 화살표에 "dests": ["07", "08", "04"] 가 있으면 자동 계산 대신 그 지점들이 목적지다(지나가는 지점도 목적지가 될 수 있고,
+// 가는 길의 지점은 멈추는 지점이어도 지나간다). 길은 화살표를 따라 가장 짧은 것.
+function pathTo(fromId, firstId, goalId) {
+  const prev = new Map([[firstId, null]]), todo = [firstId];
+  while (todo.length) {
+    const id = todo.shift();
+    if (id === goalId) { const path = []; for (let x = id; x != null; x = prev.get(x)) path.unshift(x); return path; }
+    for (const l of findNode(id)?.links || []) if (l.to !== fromId && !prev.has(l.to) && findNode(l.to)) { prev.set(l.to, id); todo.push(l.to); }
+  }
+  return null;
+}
+function destinations(fromId, toId) {
+  // "destNames": { "05": "나가기" } 가 있으면 목록·칩·이름표에 지점 이름 대신 그 글자
+  const chosenLink = findLink(fromId, toId);
+  const chosen = (chosenLink?.dests || []).map(id => ({ id, name: chosenLink.destNames?.[id] || findNode(id)?.name, path: pathTo(fromId, toId, id) })).filter(d => d.path);
+  if (chosen.length) return chosen;
+  const out = [], seen = new Set([fromId]);
+  (function walk(prev, id, path) {
+    if (seen.has(id)) return;
+    seen.add(id);
+    const n = findNode(id);
+    if (!n) return;
+    const onward = (n.links || []).filter(l => l.to !== prev && !seen.has(l.to));
+    if (!n.pass || !onward.length) { out.push({ id, name: n.name, path }); return; }   // 멈추는 지점(또는 막다른 지나가는 지점)
+    for (const l of onward) walk(id, l.to, [...path, l.to]);
+  })(fromId, toId, [toId]);
+  if (!out.length && findNode(toId)) out.push({ id: toId, name: findNode(toId).name, path: [toId] });
+  return out;
+}
+// 목적지가 하나일 때 그 지점(여럿이면 첫 화살표가 가리키는 지점)
+function finalStop(fromId, toId) {
+  const d = destinations(fromId, toId);
+  return findNode(d.length === 1 ? d[0].id : toId);
+}
+// 화살표에 붙일 이름: tour.json 의 "label" 이 있으면 그것, 없으면 목적지 이름(여럿이면 「A · B · C」)
+function destLabel(fromId, toId) {
+  const custom = findNode(fromId)?.links?.find(l => l.to === toId)?.label;
+  if (custom) return custom;
+  const d = destinations(fromId, toId);
+  return d.length > 3 ? d.slice(0, 3).map(x => x.name).join(' · ') + ' …' : d.map(x => x.name).join(' · ');
+}
+// 한 화살표 묶음(화살표·점선 길·원·핀)만 밝히고 나머지는 흐리게. to=null 이면 모두 원래대로
+function highlight(to) {
+  const box = document.getElementById('viewer');
+  box.querySelectorAll('.on').forEach(e => e.classList.remove('on'));
+  box.classList.toggle('hl', !!to);
+  if (!to) return;
+  box.querySelectorAll(`[data-to="${CSS.escape(to)}"], .psv-marker.path.to-${CSS.escape(to)}`).forEach(e => e.classList.add('on'));
+}
+// 안내판 화살표(위쪽 = 0°)와 방향별 각도
+const SIGN_ARROW_SVG = '<svg viewBox="0 0 20 20" aria-hidden="true"><path fill="currentColor" d="M10 1.5 L17.5 10 L12.2 10 L12.2 18.5 L7.8 18.5 L7.8 10 L2.5 10 Z"/></svg>';
+const SIGN_ARROWS = { up: 0, 'up-right': 45, right: 90, 'down-right': 135, down: 180, 'down-left': -135, left: -90, 'up-left': -45 };
+const signEls = new Map();   // 마커 id → 안내판 요소(편집 중 고른 판 표시용)
+// 화살표 각도(도, 위 = 0, 시계 방향): "arrowDeg" 가 있으면 그 값(자유 각도), 예전 "arrow"(8방향 이름)도 읽는다. 없으면 null
+const signArrowDeg = g => g.arrowDeg ?? SIGN_ARROWS[g.arrow] ?? null;
+const signFont = g => g.font ?? Math.round((g.size || 320) * 0.085);   // 글씨 기본 크기(px)
+// 판 색: 견본 이름(예전 "style") 또는 직접 고른 "bg"(#rrggbb). 글씨 색 "fg" 가 없으면 판 색 밝기에 맞춰 흰색/검정
+const SIGN_COLORS = { green: '#0f766e', teal: '#0d9488', blue: '#1d4ed8', sky: '#0284c7', navy: '#1e293b', purple: '#6d28d9', pink: '#be185d',
+  red: '#b91c1c', orange: '#b45309', yellow: '#facc15', lime: '#4d7c0f', brown: '#78350f', gray: '#4b5563', black: '#111111', white: '#ffffff' };
+// 파스텔 견본(요즘 많이 쓰는 부드러운 색). 글씨는 밝기에 맞춰 자동으로 어두운 색이 된다
+const SIGN_PASTELS = { blush: '#f8d7da', peach: '#ffdcc2', apricot: '#fde2b8', butter: '#fff3c4', cream: '#fbf6e9', sage: '#dbe7d3', mint: '#cdeee3',
+  aqua: '#c9ecf2', sky: '#cfe2f7', periwinkle: '#d6dcf8', lavender: '#e2d7f5', lilac: '#f1d6ee', oat: '#ece4d8', fog: '#e4e7eb' };
+const signBg = g => g.bg || SIGN_COLORS[g.style] || SIGN_COLORS.green;
+const lightColor = hex => { const n = parseInt(hex.slice(1), 16), [r, gg, b] = [n >> 16, (n >> 8) & 255, n & 255].map(v => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; });
+  return 0.2126 * r + 0.7152 * gg + 0.0722 * b > 0.4; };
+const signFg = g => g.fg || (lightColor(signBg(g)) ? '#1f1d1a' : '#ffffff');
+// 형태(kind)별 판 둘레 장식: X배너(위 고리·벌어진 다리), A형 입간판(아치 다리·뒤판), 프레임 스탠드(둥근 파이프 틀·뒤판)
+const SIGN_KINDS = { wall: '벽 부착', xbanner: 'X배너', aframe: 'A형 입간판', stand: '프레임 스탠드' };
+const SIGN_DECO = {
+  xbanner: '<i class="deco d-hooks"></i><svg class="deco d-legs" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">'
+    + '<path fill="none" stroke="var(--frame)" stroke-linecap="round" style="stroke-width:calc(var(--u) * 1.1)" vector-effect="non-scaling-stroke" d="M14 0 L2 96 M86 0 L98 96 M50 0 L50 70 M30 96 L50 70 L70 96"/></svg>',
+  aframe: '<i class="deco d-back"></i><i class="deco d-front"></i>',
+  stand: '<i class="deco d-back"></i><i class="deco d-tube"></i>'
+};
+// 형태를 바꿀 때 처음 크기·모양(사용자가 이미 정한 색은 둠)
+const SIGN_KIND_DEFAULTS = {
+  wall: {},
+  xbanner: { size: 240, height: 640, font: 34, align: 'center', valign: 'top' },
+  aframe: { size: 300, height: 440, font: 44, align: 'center', valign: 'middle', bg: '#8a5a33' },
+  stand: { size: 340, height: 300, font: 46, align: 'center', valign: 'middle', bg: '#f1efdc' }
+};
+const mixHex = (hex, to, k) => '#' + [1, 3, 5].map(i => Math.round(parseInt(hex.substr(i, 2), 16) * (1 - k) + to * k).toString(16).padStart(2, '0')).join('');
+// 틀 색: 직접 고른 "frame", 없으면 X배너는 은색, 나머지는 판 색보다 조금 어둡게
+const signFrame = g => g.frame || (g.kind === 'xbanner' ? '#9ca3af' : lightColor(signBg(g)) ? mixHex(signBg(g), 0, 0.12) : mixHex(signBg(g), 0, 0.3));
+// 안내 글씨 모양: 색(bg, 없으면 주황)·글씨 크기(scale %)·바탕 투명도(alpha %)를 CSS 변수로
+const LABEL_SHAPES = { tag: '기본 태그', pill: '알약', bubble: '말풍선', card: '카드', plain: '글씨만' };
+function labelStyle(m) {
+  const lb = m.bg || '#b45309', a = (m.alpha ?? 100) / 100, n = parseInt(lb.slice(1), 16), rgb = `${n >> 16},${(n >> 8) & 255},${n & 255}`;
+  // 글씨 색(fg): 직접 고른 색, 없으면 모양에 맞춰 자동(카드는 검정, 글씨만은 상자 색, 나머지는 상자 밝기에 맞춰 흰색/검정)
+  const lt = m.fg || (m.shape === 'card' ? '#1f1d1a' : m.shape === 'plain' ? lb : lightColor(lb) ? '#1f1d1a' : '#fff');
+  // --ls 글씨 크기 배율, --lp 상자 크기(여백) 배율 — 글씨와 상자를 따로
+  return `--lb:${lb};--lt:${lt};--lba:rgba(${rgb},${a});--lca:rgba(255,255,255,${a});--ls:${(m.scale ?? 100) / 100};--lp:${(m.pad ?? 100) / 100}`;
+}
+function signElement(g, key) {
+  const el = document.createElement('div');
+  const w = g.size || 320, kind = SIGN_KINDS[g.kind] ? g.kind : 'wall';
+  el.className = `sign k-${kind}`; el.dataset.sign = key;
+  el.style.setProperty('--u', w / 100 + 'px');
+  // 판 크기(너비 size·높이 height)와 글씨 크기(font)는 따로. font 가 없는 예전 판은 너비에 비례한 크기
+  el.style.width = w + 'px'; el.style.fontSize = signFont(g) + 'px';
+  if (g.height) el.style.height = g.height + 'px';
+  const deg = signArrowDeg(g);
+  const ar = deg == null ? '' : `<span class="ar" style="transform:rotate(${deg}deg);font-size:${(g.arrowScale ?? 100) / 100}em">${SIGN_ARROW_SVG}</span>`;
+  // 화살표 자리: 옆(side)·아래(below)·위(above). 벽 부착은 옆, 서 있는 간판은 아래가 기본
+  const arPos = g.arrowPos || (kind === 'wall' ? 'side' : 'below');
+  // 큰 글씨·작은 글씨 크기는 따로(%, 기본 100)
+  // 글씨 정렬: 가로 align(left·center·right, 기본 왼쪽), 세로 valign(top·middle·bottom, 기본 가운데 — 판 높이를 키웠을 때 보임)
+  const al = g.align || 'left', flexOf = { left: 'flex-start', center: 'center', right: 'flex-end', top: 'flex-start', middle: 'center', bottom: 'flex-end' };
+  const img = g.image ? `<img class="sg-img" src="${esc(g.image)}" alt="">` : '';
+  // 큰 글씨(align)·작은 글씨(subAlign, 없으면 큰 글씨와 같게) 정렬은 따로. textPos·subPos({x,y} 판 안 %)가 있으면 그 자리에 따로 놓는다
+  const sal = g.subAlign || al;
+  const place = (a, pos) => pos ? `position:absolute;left:${pos.x}%;top:${pos.y}%;transform:translateX(${a === 'left' ? 0 : a === 'right' ? -100 : -50}%);text-align:${a}` : `align-self:${flexOf[a]};text-align:${a}`;
+  const tx = `<span class="tx" style="text-align:${al};align-items:${flexOf[al]}">${img}<b class="${g.textPos ? 'free' : ''}" style="font-size:${(g.textScale ?? 100) / 100}em;${place(al, g.textPos)}">${esc(g.text || '')}</b>`
+    + (g.sub ? `<small class="${g.subPos ? 'free' : ''}" style="font-size:${0.58 * (g.subScale ?? 100) / 100}em;${place(sal, g.subPos)}">${esc(g.sub)}</small>` : '') + '</span>';
+  const right = deg != null && ((deg % 360) + 360) % 360 > 0 && ((deg % 360) + 360) % 360 < 180;
+  const bg = signBg(g), fg = signFg(g);
+  el.style.setProperty('--bg', bg); el.style.setProperty('--fg', fg); el.style.setProperty('--frame', signFrame(g));
+  // 판 투명도(alpha %, 기본 100): 판 바탕만 비치고 글씨·화살표는 그대로 진하게. 많이 비치면 그림자도 뺌
+  const alpha = (g.alpha ?? 100) / 100;
+  if (alpha < 1) {
+    const n = parseInt(bg.slice(1), 16);
+    el.style.setProperty('--bga', `rgba(${n >> 16},${(n >> 8) & 255},${n & 255},${alpha})`);
+    if (alpha < 0.7) el.classList.add('see');
+  }
+  const v = flexOf[g.valign || 'middle'];
+  const body = arPos === 'side' ? (right ? tx + ar : ar + tx) : arPos === 'above' ? ar + tx : tx + ar;   // 옆이면 오른쪽을 가리킬 때 화살표를 오른쪽 끝에
+  const box = arPos === 'side' ? `align-items:${v}` : `justify-content:${v};align-items:${flexOf[al]}`;
+  el.innerHTML = `${SIGN_DECO[kind] || ''}<div class="sign-in${arPos === 'side' ? '' : ' col'}" style="${box}">${body}</div>`;
+  return el;
+}
+// 바닥 화살표 모양: 겹친 갈매기표(위쪽 = 가는 방향)
+const ARROW_SVG = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" aria-hidden="true"><path fill="currentColor" stroke="rgba(0,0,0,.35)" stroke-width="2" d="M50 8 L90 48 L76 62 L50 36 L24 62 L10 48 Z M50 44 L90 84 L76 98 L50 72 L24 98 L10 84 Z"/></svg>';
+// 바닥 화살표 자리: 도착 원이 멀면 발 앞(pitch ARROW_PITCH)에서 원 쪽을 가리키고, 가까우면(문 바로 앞 등) 원 한가운데.
+// 도착 원이 없으면 화살표 yaw 쪽 발 앞.  처음 화면(시선 수평)에서 보이도록 너무 아래로 두지 않는다.
+const ARROW_PITCH = -26;
+// 링크에 "arrow": { yaw, pitch } 가 있으면 출발 화살표를 그 자리에 둔다(편집 모드 「출발 화살표」로 찍음).
+const arrowSpot = l => l.arrow ? { yaw: l.arrow.yaw, pitch: l.arrow.pitch }
+  : l.target ? { yaw: l.target.yaw, pitch: Math.min(ARROW_PITCH, l.target.pitch) }
+  : { yaw: l.yaw ?? 0, pitch: ARROW_PITCH };
+// 바닥 화살표가 실제로 가리키는 방위(도°, yaw 와 같은 기준): 화살표 자리 → 원 자리(바닥 평면).
+// 수평선 가까이(12° 미만) 납작하게 그리는 화살표는 돌리지 않으므로 자기 yaw.
+function arrowHeading(l) {
+  const pos = arrowSpot(l), t = l.target || { yaw: l.yaw ?? 0, pitch: -17 };
+  if (Math.abs(pos.pitch) < 12) return pos.yaw;
+  const toFloor = (yaw, pitch) => { const d = 1 / Math.tan(-Math.min(pitch, -2) * RAD); return [d * Math.sin(yaw * RAD), d * Math.cos(yaw * RAD)]; };
+  const [ax, ay] = toFloor(pos.yaw, pos.pitch), [bx, by] = toFloor(t.yaw, t.pitch);
+  return Math.atan2(bx - ax, by - ay) / RAD;
+}
+// 「갈 수 있는 곳」 칩의 작은 화살표 방향: 링크에 "chip"(도°)이 있으면 그 방향, 없으면 바닥 화살표와 같은 방향
+const chipYaw = l => l.chip ?? arrowHeading(l);
+
+// 글씨에 "body"(긴 설명)나 "images"(사진 목록)가 있으면 눌렀을 때 팝업으로 연다
+const hasInfo = m => !!(m.body || (m.images && m.images.length) || (m.videos && m.videos.length));
+// 유튜브 주소면 영상 ID(11자)와 쇼츠 여부를, 아니면 null
+function youtubeId(url) {
+  const m = String(url).match(/(?:youtube(?:-nocookie)?\.com\/(?:watch\?(?:.*&)?v=|embed\/|shorts\/|live\/)|youtu\.be\/)([\w-]{11})/);
+  return m ? { id: m[1], tall: /\/shorts\//.test(url) } : null;
+}
+
+// tour.json → Photo Sphere Viewer 노드 (편집 모드에서 값을 바꾸면 다시 만든다)
+const buildNode = n => ({
+  id: n.id,
+  panorama: n.photo,
+  thumbnail: thumbOf(n),
+  name: n.name,
+  caption: n.name,
+  showInGallery: !n.pass,
+  links: (n.links || []).map(l => ({
+    nodeId: l.to,
+    position: { yaw: (l.yaw ?? 0) + 'deg', pitch: (l.pitch ?? -10) + 'deg' }
+  })),
+  markers: [
+    ...(n.labels || []).flatMap((m, i) => {
+      const data = { label: i, text: m.text, detail: m.detail || '', body: m.body || '', images: m.images || [], videos: m.videos || [], audio: m.audio || '' };
+      const lbl = `<span class="lbl">${esc(m.text)}${hasInfo(m) ? '<span class="more">자세히</span>' : ''}</span>`;
+      const at = { yaw: (m.yaw ?? 0) + 'deg', pitch: (m.pitch ?? 0) + 'deg' };
+      const ls = labelStyle(m), mk = `mk mk-${m.shape || 'tag'}`;
+      if (!m.box) return [{ id: `${n.id}-m${i}`, position: at, anchor: 'bottom center', html: `<div class="${mk}" style="${ls}" data-label="${i}">${lbl}<span class="dot"></span></div>`, data }];
+      // 따로 뺀 글씨: 점(가리키는 곳) · 선 · 글씨(box 자리) 세 개. 점과 글씨 어느 쪽을 눌러도 같은 팝업
+      return [
+        { id: `${n.id}-m${i}-line`, polyline: leaderPath(m, m.box), className: 'leader',
+          svgStyle: { stroke: m.line || 'rgba(255,255,255,.95)', strokeWidth: '3px', strokeLinecap: 'round' }, zIndex: -1 },   // 선 색 line(없으면 흰색)
+        { id: `${n.id}-m${i}-dot`, position: at, anchor: 'center center', html: `<div class="${mk}" style="${ls}" data-label="${i}"><span class="dot"></span></div>`, data },
+        { id: `${n.id}-m${i}`, position: { yaw: m.box.yaw + 'deg', pitch: m.box.pitch + 'deg' }, anchor: 'center center',
+          html: `<div class="${mk} callout" style="${ls}" data-label="${i}">${lbl}</div>`, data }
+      ];
+    }),
+    // 안내판: 벽 방향(turn)·기울기(tilt)·돌리기(roll)만큼 돌린 3D 판
+    ...(n.signs || []).map((g, i) => {
+      const id = `${n.id}-s${i}`, el = signElement(g, i);
+      signEls.set(id, el);
+      return { id, position: { yaw: g.yaw + 'deg', pitch: g.pitch + 'deg' }, elementLayer: el,
+        rotation: { yaw: (g.turn || 0) + 'deg', pitch: (g.tilt || 0) + 'deg', roll: (g.roll || 0) + 'deg' }, data: { sign: i }, zIndex: 5 };
+    }),
+    // 화살표마다: 바닥 화살표, (target 이 있으면) 바닥 원과 점선 길, 가는 곳 이름 핀. 어느 것을 눌러도 같은 곳으로 간다
+    ...(n.links || []).flatMap(l => {
+      // 도착 자리를 아직 안 찍은 화살표도 화살표 방향 앞쪽(약 5m)에 임시 원을 그려 어디서나 같은 모양이 보이게 한다.
+      // 임시 원은 편집 중에 흐리게 표시된다(guess). 저장되는 값은 아니다.
+      const a = arrowSpot(l), t = l.target || { yaw: l.yaw ?? 0, pitch: -17, guess: true };
+      const flat = (cls, size, pos) => {
+        const el = document.createElement('div');
+        el.className = cls + (t.guess ? ' guess' : ''); el.dataset.to = l.to;
+        el.style.width = el.style.height = size + 'px';
+        if (cls === 'farrow') {
+          el.innerHTML = ARROW_SVG;
+          // 바닥에 눕힌 화살표의 위쪽은 늘 보는 사람에게서 멀어지는 쪽(자기 yaw 방향)이다. 화살표를 옆에 두면
+          // 원과 어긋나므로, 화살표 자리 → 원 자리 방향(바닥 평면)만큼 그림을 돌려 원을 가리키게 한다.
+          if (Math.abs(pos.pitch) >= 12) el.firstElementChild.style.transform = `rotate(${Math.round(arrowHeading(l) - pos.yaw)}deg)`;
+        }
+        const position = { yaw: pos.yaw + 'deg', pitch: pos.pitch + 'deg' };
+        // 수평선 가까이(먼 곳)는 바닥에 눕힌 3D 요소가 화면 가득 늘어나 하늘을 눌러도 이동해 버린다.
+        // 그래서 12°보다 얕거나 수평선 위(올라가는 계단의 계단참 등)면 납작하게 누른 2D 모양으로 그린다.
+        if (pos.pitch > -12) {
+          const w = Math.max(size, 64);
+          el.style.width = el.style.height = w + 'px';
+          el.style.transform = `scaleY(${Math.min(0.6, Math.max(0.3, Math.sin(Math.abs(pos.pitch) * RAD) * 2.5)).toFixed(2)})`;
+          return { position, element: el, anchor: 'center center', data: { goto: l.to } };
+        }
+        return { position, elementLayer: el, rotation: { pitch: '90deg' }, data: { goto: l.to } };
+      };
+      const out = [];
+      const path = t && floorPath(a, t);
+      if (path) out.push({
+        id: `${n.id}-path-${l.to}`,
+        polyline: path,
+        data: { path: l.to },
+        className: `path to-${l.to}`,
+        svgStyle: { stroke: 'rgba(94,234,212,.95)', strokeWidth: '6px', strokeDasharray: '1 16', strokeLinecap: 'round' },
+        zIndex: -5
+      });
+      out.push({ id: `${n.id}-spot-${l.to}`, ...flat('spot', spotSize(t.pitch), t) });
+      out.push({ id: `${n.id}-arrow-${l.to}`, ...flat('farrow', Math.round(spotSize(a.pitch) * (t && !path ? 0.5 : 0.8)), a) });
+      // 이름 핀: 원(없으면 화살표) 위에 선다. 아주 가까운 자리는 처음 화면에서도 보이게 조금 띄운다
+      out.push({
+        id: `${n.id}-pin-${l.to}`,
+        position: { yaw: t.yaw + 'deg', pitch: Math.max(t.pitch, -32) + 'deg' },
+        anchor: 'bottom center',
+        html: `<div class="pin${t.guess ? ' guess' : ''}" data-to="${esc(l.to)}"><span class="lbl">${esc(destLabel(n.id, l.to))}</span><span class="stem"></span></div>`,
+        data: { goto: l.to }
+      });
+      return out;
+    })
+  ]
+});
+const nodes = tour.nodes.map(buildNode);
+
+const viewer = new Viewer({
+  container: 'viewer',
+  adapter: EquirectangularAdapter.withConfig({ useXmpData: false }),
+  defaultZoomLvl: ZOOM,
+  maxFov: VIEW.maxFov,
+  navbar: kiosk ? ['zoom', 'caption', 'gallery'] : ['zoom', 'caption', 'gallery', 'fullscreen'],
+  lang: { zoomIn: '확대', zoomOut: '축소', fullscreen: '전체 화면', gallery: '지점 목록', loadError: '사진을 불러오지 못했습니다' },
+  plugins: [
+    MarkersPlugin,
+    GalleryPlugin.withConfig({ visibleOnLoad: false, thumbnailSize: { width: 140, height: 80 } }),
+    VirtualTourPlugin.withConfig({
+      positionMode: 'manual',
+      renderMode: '3d',
+      preload: true,   // 이어진 지점 사진을 미리 받아 두어 누르자마자 움직이게
+      showLinkTooltip: false,   // 이름은 바닥 핀에 있으므로 뷰어 기본 미리보기는 끔
+      transitionOptions: { showLoader: true, speed: '20rpm', effect: 'fade', rotation: true }
+    }),
+    ...(kiosk ? [AutorotatePlugin.withConfig({ autostartDelay: null, autostartOnIdle: false, autorotateSpeed: '1rpm' })] : [])
+  ]
+});
+
+const vt = viewer.getPlugin(VirtualTourPlugin);
+// 휴대폰을 가로·세로로 돌리면 시야를 다시 맞춘다(세로↔가로가 바뀔 때만)
+addEventListener('resize', () => {
+  const next = fitView();
+  if (next.maxFov === VIEW.maxFov) return;
+  VIEW = next;
+  viewer.setOptions({ maxFov: VIEW.maxFov });
+  viewer.zoom(VIEW.zoom);
+});
+const markers = viewer.getPlugin(MarkersPlugin);
+const byId = new Proxy({}, { get: (_, id) => findNode(id) });   // 편집으로 지점이 늘고 줄어도 늘 지금 목록에서 찾는다
+
+
+// 걸어가는 느낌(거리뷰처럼): 화살표 쪽으로 몸을 돌리며 지금 사진 속으로 걸어 들어가고(카메라를 앞으로 밀어
+// 바닥·벽이 옆으로 흘러감), 다음 사진이 준비되면 걷던 속도 그대로 이어 가며 겹쳐 바꾼 뒤 천천히 멈춘다.
+// 도착하면 걸어온 방향을 그대로 본다(되돌아가는 화살표의 반대쪽). 화살표가 아닌 이동은 startYaw.
+// 새 사진을 도착 방향에 맞춰 돌려 놓고 겹치므로, 사진마다 카메라 방향이 달라도 화면이 튀지 않는다.
+// ※ 뷰어 내부(renderer.transition, meshContainer)를 쓴다. Photo Sphere Viewer 버전을 올리면 다시 확인할 것.
+const rad = d => d * Math.PI / 180;
+const r = viewer.renderer;
+const transition = r.transition.bind(r);
+let walk = null;   // 걷는 중: 방향 dir, 걸은 거리 s, 속도 v
+let curD = WALK.distance;   // 이번 이동의 걷는 거리(도착 지점이 멀면 길게, walkDistance)
+let carry = false;          // 이번 도착 지점을 그냥 지나감: 멈추지 않고 걷던 속도 그대로 도착해서 바로 다음 구간으로
+
+// 누르자마자 걷기 시작한다(천천히 출발). 다음 사진 준비가 늦으면 천천히 멈춰 기다린다.
+const startWalk = (dir, delay, v0 = 0) => {
+  const w = walk = { dir, s: 0, v: v0, raf: 0 };
+  const cruise = curD / WALK.seconds, cap = curD * 0.35;
+  let last = performance.now() + delay;
+  const step = t => {
+    if (t > last) {
+      const dt = Math.min(0.05, (t - last) / 1000);
+      const target = cruise * Math.min(1, Math.max(0, 2 * (cap - w.s) / cap));
+      w.v += (target - w.v) * (1 - Math.exp(-dt / 0.25));
+      w.s += w.v * dt;
+      r.meshContainer.position.copy(dir).multiplyScalar(-w.s);   // 지금 사진이 뒤로 → 카메라가 앞으로
+      viewer.needsUpdate();
+      last = t;
+    }
+    w.raf = requestAnimationFrame(step);
+  };
+  w.raf = requestAnimationFrame(step);
+};
+const stopWalk = () => {
+  if (walk) cancelAnimationFrame(walk.raf);
+  walk = null;
+  r.meshContainer.position.set(0, 0, 0);
+};
+// 다음 사진이 준비되면 걷던 자리·속도에서 이어서 끝까지 걸으며 겹쳐 바꾼다
+r.transition = (textureData, options, tr) => {
+  const before = new Set(r.scene.children);
+  const anim = transition(textureData, options, tr);
+  const next = r.scene.children.find(c => !before.has(c));   // 다음 사진이 담긴 그룹
+  showPassingSigns();
+  if (!walk || !next || !anim.options) return anim;
+  cancelAnimationFrame(walk.raf);
+  const { dir, s: s0 } = walk, D = curD, tick = anim.options.onTick;
+  const m0 = Math.min(walk.v * WALK.seconds, 3 * (D - s0));   // 이어 받는 속도(D를 넘어가지 않게 제한)
+  const m1 = carry ? Math.min(D, 2 * (D - s0)) : 0;            // 도착 속도: 지나가는 지점이면 평소 걷는 속도, 아니면 멈춤
+  anim.options.onTick = (props, p) => {
+    // 속도를 이어 받아 D에 도착(멈추거나, 지나가는 지점이면 같은 속도로 계속)
+    const s = s0 + (D - s0) * (3 * p * p - 2 * p ** 3) + m0 * (p ** 3 - 2 * p * p + p) + m1 * (p ** 3 - p * p);
+    r.meshContainer.position.copy(dir).multiplyScalar(-s);
+    next.position.copy(dir).multiplyScalar(D - s);             // 다음 사진이 앞에서 다가옴
+    tick(props, p);
+  };
+  anim.then(() => r.meshContainer.position.set(0, 0, 0));
+  return anim;
+};
+
+const moveTo = vt.setCurrentNode.bind(vt);
+// 지나가는 지점을 떠날 때 뷰어가 그 지점의 마커를 모두 지우므로, 간판만 다시 그려 다음 사진으로 바뀌는 동안 보이게 한다
+// (도착하면 뷰어가 새 지점 마커로 통째로 바꾼다)
+let leavingId = '';
+function showPassingSigns() {
+  const n = findNode(leavingId);
+  if (!n?.signs?.length || !$('viewer').classList.contains('glance')) return;
+  n.signs.forEach((g, i) => {
+    const id = `pass-${n.id}-s${i}`;
+    if (markers.getMarkers().some(m => m.id === id)) return;
+    markers.addMarker({ id, position: { yaw: g.yaw + 'deg', pitch: g.pitch + 'deg' }, elementLayer: signElement(g, i),
+      rotation: { yaw: (g.turn || 0) + 'deg', pitch: (g.tilt || 0) + 'deg', roll: (g.roll || 0) + 'deg' }, data: { sign: i }, zIndex: 5 });
+  });
+}
+let moving = false;
+// 자동 걷기: "pass": true 인 지점(복도 중간 등)에 화살표로 도착하면 멈추지 않고
+// 들어온 쪽이 아닌 유일한 화살표를 따라 계속 걷는다. 화면을 누르면 그 지점에서 멈춘다.
+let autoWalking = false, autoStopped = false;
+let cameFrom = '';   // 화살표로 들어왔으면 떠나온 지점 (편집 모드의 도착 방향 정하기에 씀)
+let editing = false;
+let walkTarget = '';   // 이번 이동에서 최종적으로 멈출 지점 이름
+let route = [];        // 목적지를 골라 걷는 중: 앞으로 지나갈 지점들(마지막이 목적지). 갈림이 있는 지나가는 지점에서 이 길을 따른다
+let routeEnd = '';     // 고른 목적지. 지나가는 지점이어도 여기서는 멈춘다
+let routeStart = false;
+const showHint = text => { $('autoHint').textContent = text; $('autoHint').hidden = !text; };
+const setAutoHint = on => {
+  autoWalking = on;
+  showHint(on ? `${walkTarget}까지 걷는 중 · 화면을 누르면 멈춥니다` : '');
+};
+// 걷는 도중에 눌러도 멈춘다(도착한 지점에서 멈춤). 화살표를 처음 누를 때는 아직 moving 이 아니라 해당 없음
+$('viewer').addEventListener('pointerdown', () => { if (autoWalking || moving) { autoStopped = true; setAutoHint(false); } });
+// nodeId 가 지나가는 지점이면(fromId 에서 들어왔을 때) 이어서 갈 화살표, 아니면 null. 멈춤을 누른 뒤·고른 목적지에서는 멈춘다
+function passNext(nodeId, fromId) {
+  const n = findNode(nodeId);
+  if (autoStopped || !n || nodeId === routeEnd) return null;
+  const planned = route.length && (n.links || []).find(l => l.to === route[0]);   // 목적지를 골랐으면 그 길로(멈추는 지점이어도 지나감)
+  if (planned) return planned;
+  if (!n.pass) return null;
+  const next = (n.links || []).filter(l => l.to !== fromId);
+  return next.length === 1 ? next[0] : null;
+}
+const endWalking = () => { $('viewer').classList.remove('walking', 'glance'); setAutoHint(false); route = []; routeEnd = ''; };
+// 지금 지점에서 toId 화살표로 출발. 목적지가 여럿이면 고르게 하고(dest 를 주면 그 목적지로), 하나면 바로 간다
+function goLink(toId, dest) {
+  const cur = vt.getCurrentNode(), link = cur?.links.find(l => l.nodeId === toId);
+  if (!link || moving) return;
+  closeRoutePick();
+  const dests = destinations(cur.id, toId);
+  // 편집 중에는 지나가는 지점도 고쳐야 하므로, 목록에 「그 지점에서 멈춤」을 하나 더 넣는다(방문자 화면에는 없음)
+  if (editing && !dests.some(x => x.id === toId)) dests.push({ id: toId, name: `${nameOf(toId)}에서 멈춤 (편집용)`, path: [toId] });
+  const d = dest || (dests.length === 1 ? dests[0] : null);
+  if (!d && dests.length > 1) { openRoutePick(toId, dests); return; }
+  route = d ? d.path.slice(1) : [];
+  routeEnd = d ? d.id : '';
+  walkTarget = d ? nameOf(d.id) : '';   // 걷는 중 안내는 지점 이름으로(「나가기」 같은 바꾼 이름 말고)
+  routeStart = true;
+  vt.setCurrentNode(link.nodeId, null, link);
+}
+// 「어디로 갈까요?」 목적지 고르기
+function openRoutePick(toId, dests) {
+  const box = $('routePick');
+  $('routeList').replaceChildren(...dests.map(d => {
+    const b = document.createElement('button');
+    b.type = 'button'; b.textContent = d.name;
+    b.onclick = () => goLink(toId, d);
+    return b;
+  }));
+  box.dataset.to = toId; box.hidden = false;
+  highlight(toId);
+  $('routeList').firstElementChild?.focus({ preventScroll: true });
+}
+function closeRoutePick() { if (!$('routePick').hidden) { $('routePick').hidden = true; highlight(null); } }
+// 지나가는 지점에 간판이 있으면 잠깐 멈춰 보여 준다: 간판이 화면 밖이면 그쪽으로 돌아보고 signPause 초 머문 뒤 이어 걷는다
+const pausesAt = id => WALK.signPause > 0 && !!findNode(id)?.pass && !!findNode(id)?.signs?.length;   // 지나가는 지점만(방금 나온 교실 앞 같은 멈추는 지점은 그냥 지나감)
+async function glanceAtSigns(n) {
+  if (!pausesAt(n?.id) || autoStopped) return;
+  const now = viewer.getPosition(), half = (viewer.state?.hFov || 60) * RAD / 2 * 0.7;
+  const rel = g => Math.atan2(Math.sin(rad(g.yaw) - now.yaw), Math.cos(rad(g.yaw) - now.yaw));
+  const g = n.signs.reduce((a, b) => Math.abs(rel(a)) <= Math.abs(rel(b)) ? a : b);   // 지금 시선에서 가장 가까운 간판
+  $('viewer').classList.add('glance');
+  try {
+    if (Math.abs(rel(g)) > half) await viewer.animate({ yaw: rad(g.yaw), pitch: rad(Math.max(-15, Math.min(15, g.pitch + 8))), speed: 700 });
+    const until = performance.now() + WALK.signPause * 1000;
+    while (performance.now() < until && !autoStopped) await new Promise(r => setTimeout(r, 100));   // 화면을 누르면 바로 멈춤
+  } finally { $('viewer').classList.remove('glance'); }
+}
+async function continueWalk(cameFrom) {
+  const here = vt.getCurrentNode()?.id, next = passNext(here, cameFrom);
+  const link = next && vt.getCurrentNode().links.find(l => l.nodeId === next.to);
+  if (!link) { endWalking(); return; }
+  if (route[0] === next.to) route.shift();   // 고른 길을 한 칸 나아감
+  setAutoHint(true);
+  await glanceAtSigns(findNode(here));
+  // 멈추지 않고 지나갈 때도 이 지점의 간판은 보이게(화살표·핀·글씨는 숨긴 채)
+  $('viewer').classList.toggle('glance', !autoStopped && !!findNode(here)?.signs?.length);
+  // 걷던 속도 그대로 곧바로 다음 구간으로(화살표·핀은 숨긴 채)
+  setTimeout(() => { if (!autoStopped) vt.setCurrentNode(link.nodeId, null, link); else endWalking(); }, 0);
+}
+
+vt.setCurrentNode = async (nodeId, options, fromLink) => {
+  const from = byId[vt.getCurrentNode()?.id], to = byId[nodeId];
+  const link = fromLink && from?.links.find(l => l.to === nodeId);
+  if (!link) {   // 지점 목록·처음으로: 걷지 않고 겹쳐 바꾸기만, 자동 걷기도 멈춤
+    cameFrom = ''; route = []; routeEnd = '';
+    autoStopped = true; setAutoHint(false);
+    const arrive = { yaw: rad(to?.startYaw ?? 0), pitch: 0 };
+    return moveTo(nodeId, { effect: 'fade', speed: 600, rotation: false, rotateTo: arrive, zoomTo: VIEW.zoom, ...options });
+  }
+  if (moving) return false;
+  leavingId = from.id;
+  highlight(null);
+  if (!autoWalking) {                      // 사용자가 직접 누른 화살표면 새로 시작
+    autoStopped = false;
+    if (!routeStart) { route = []; routeEnd = ''; walkTarget = finalStop(from.id, nodeId)?.name || ''; }   // goLink 로 목적지를 골라 출발했으면 그 길·이름 그대로
+    routeStart = false;
+    showHint(walkTarget ? `${walkTarget}${ro(walkTarget)} 이동 중` : '');
+  }
+  // 그냥 지나가는 지점이면 도착 방향 = 다음 구간으로 걸어갈 방향(수평). 도착하자마자 돌아보지 않고 그대로 이어 걷는다
+  const through = passNext(nodeId, from.id);
+  // 올라가는 계단처럼 도착 자리가 눈높이보다 위면 조금 올려다보며 걷는다(도°, 0~25)
+  const upOf = (f, t) => Math.min(25, Math.max(0, findLink(f, t)?.target?.pitch ?? 0));
+  const upNow = upOf(from.id, nodeId);
+  const a = through ? { yaw: headingYaw(nodeId, through.to) ?? through.yaw ?? 0, pitch: upNow } : arriveFor(from.id, nodeId);
+  // 사진이 바뀌는 순간 시선 높이가 툭 바뀌지 않게, 도착할 때는 걷던 높이 그대로 → 멈춘 뒤 천천히 제 방향으로(지나가는 지점이면 다음 구간을 걸으며 바뀜)
+  const settle = !through && Math.abs(a.pitch - upNow) > 1 ? a.pitch : null;
+  const arrive = { yaw: rad(a.yaw), pitch: rad(through ? a.pitch : settle != null ? upNow : a.pitch) };
+  const chained = autoWalking && carry;   // 앞 구간에서 속도를 줄이지 않고 들어옴
+  carry = !!through && !pausesAt(nodeId);   // 간판을 보여 주려고 멈출 지점에는 속도를 줄여 도착
+  moving = true;
+  $('viewer').classList.add('walking');
+  let arrived = false;
+  try {
+    // 도착 지점(target)이 있으면 그쪽으로, 없으면 화살표 쪽으로 몸을 돌리며(시선은 수평으로) 걷기 시작한다.
+    // 크게 돌 때는 거의 다 돈 뒤에 걷는다. 걷는 거리는 도착 지점이 멀수록 길게.
+    const now = viewer.getPosition(), face = rad(headingYaw(from.id, nodeId) ?? link.yaw);
+    const up = rad(upNow);
+    curD = walkDistance(from.id, nodeId);
+    const off = Math.abs(Math.atan2(Math.sin(face - now.yaw), Math.cos(face - now.yaw)));
+    const turn = off > rad(8) || Math.abs(now.pitch - up) > rad(8) ? (off > rad(100) ? 700 : 500) : 0;
+    if (curD > 0) startWalk(viewer.dataHelper.sphericalCoordsToVector3({ yaw: face, pitch: up }, undefined, 1), chained ? 0 : Math.max(0, turn - 300), chained ? curD / WALK.seconds : 0);
+    if (turn) await viewer.animate({ yaw: face, pitch: up, speed: turn });
+    arrived = await moveTo(nodeId, { effect: 'fade', speed: WALK.seconds * 1000, showLoader: false, rotation: false, rotateTo: arrive, zoomTo: null, ...options }, fromLink);
+  } finally {
+    moving = false;
+    stopWalk();
+    if (!arrived || !through) { carry = false; $('viewer').classList.remove('walking'); }
+  }
+  if (arrived && settle != null) viewer.animate({ yaw: arrive.yaw, pitch: rad(settle), speed: 700 });
+  if (arrived) { cameFrom = from.id; continueWalk(from.id); } else endWalking();
+  return arrived;
+};
+// ?at=지점ID 로 그 지점에서 시작(편집할 때나 지점별 QR에)
+const atId = params.get('at');
+vt.setNodes(nodes, findNode(atId) ? atId : tour.start || nodes[0].id);
+// 지점 목록은 설정 파일 순서대로 직접 채운다. 뷰어는 지점을 id 로 모아 두는데, "10"·"12" 같은 숫자 id 가
+// "01"보다 앞으로 가 버려서(자바스크립트 객체 규칙) 별담터가 정문보다 먼저 나왔다.
+// 지나가는 지점(pass)은 방문자 목록에서 숨기고, 편집 중에는 모두 보여 준다.
+const gallery = viewer.getPlugin(GalleryPlugin);
+function setGallery() {
+  gallery.setItems(tour.nodes.filter(n => editing || !n.pass).map(n => ({
+    id: n.id, panorama: n.photo, thumbnail: thumbOf(n),
+    name: editing && !(n.links || []).length ? `${n.name} (연결 없음)` : editing && n.pass ? `${n.name} (지나감)` : n.name
+  })), id => vt.setCurrentNode(id));
+}
+setGallery();
+
+$('tourTitle').textContent = tour.title || '';
+document.title = tour.title ? `${tour.title} · 360 투어` : document.title;
+// 사진 목록이 열려 있는 동안에는 「갈 수 있는 곳」 칩을 숨긴다(겹치지 않게)
+gallery.addEventListener('show-gallery', () => document.documentElement.classList.add('gallery-open'));
+gallery.addEventListener('hide-gallery', () => document.documentElement.classList.remove('gallery-open'));
+
+// 마우스를 화면 아래 끝(메뉴 줄)에 가져가면 지점 사진 목록이 미끄러져 올라오고, 위로 벗어나면 내려간다.
+// 마우스가 있는 컴퓨터에서만. 휴대폰은 오른쪽 아래 버튼으로 연다. 사진을 눌러 이동하면 마우스가 한 번 위로 벗어날 때까지 다시 안 열림
+if (!kiosk && matchMedia('(hover: hover) and (pointer: fine)').matches) {
+  let byHover = false, armed = true;
+  const tip = document.createElement('div');
+  tip.className = 'gallery-tip'; tip.textContent = '▲ 장소 사진';
+  document.body.append(tip);
+  window.addEventListener('mousemove', e => {
+    const up = innerHeight - e.clientY;   // 화면 아래 끝에서 떨어진 거리
+    const h = (document.querySelector('.psv-gallery')?.offsetHeight || 120) + 40;
+    tip.classList.toggle('on', up < 90 && up >= 40 && !gallery.isVisible() && !moving);
+    if (up > h + 30) {   // 목록 위로 벗어남
+      armed = true;
+      if (byHover && gallery.isVisible()) gallery.hide();
+      byHover = false;
+    } else if (up < 40 && armed && !gallery.isVisible() && !moving && !$('info').open) {
+      gallery.show(); byHover = true; armed = false;
+    }
+  }, { passive: true });
+  document.documentElement.addEventListener('mouseleave', () => { tip.classList.remove('on'); if (byHover && gallery.isVisible()) gallery.hide(); byHover = false; armed = true; });
+}
+viewer.addEventListener('panorama-loaded', () => {
+  $('boot').hidden = true; $('ui').hidden = false;
+  if (kiosk) return;
+  // 처음 한 번: 무엇을 누르면 되는지 알려 주고 5초 뒤 사라짐
+  showHint('바닥의 화살표나 원을 누르면 그곳으로 이동합니다');
+  setTimeout(() => { if (!moving && !autoWalking) showHint(''); }, 5000);
+}, { once: true });
+viewer.addEventListener('panorama-error', () => {
+  $('boot').hidden = false;
+  $('boot').textContent = `사진을 불러오지 못했습니다. ${tourFile}의 photo 경로와 img/ 폴더의 파일명을 확인하세요.`;
+  if (kiosk) reloadWhenOnline(30000);
+});
+
+vt.addEventListener('node-changed', ({ node }) => {
+  $('nodeName').textContent = node.name;
+  $('detail').hidden = true;
+  closeRoutePick();
+  renderDirs(node.id);
+});
+$('routeClose').addEventListener('click', closeRoutePick);
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeRoutePick(); });
+viewer.addEventListener('click', ({ data }) => { if (!data.marker) closeRoutePick(); });   // 사진의 빈 곳을 누르면 닫음
+// ── 갈 수 있는 곳 막대 ──
+// 갈림길처럼 화살표가 옆·뒤에 있으면 도착해서 바로 안 보이므로, 화면 아래에 화살표마다 칩을 둔다.
+// 칩의 작은 화살표는 지금 시선 기준으로 그 화살표가 어느 쪽인지 가리키고, 누르면 그쪽으로 돌아본다. 화면 안에 있을 때 누르면 이동.
+const DIR_SVG = '<svg viewBox="0 0 20 20" aria-hidden="true"><path fill="currentColor" d="M10 2 L16 11 L11.5 9.5 L11.5 18 L8.5 18 L8.5 9.5 L4 11 Z"/></svg>';
+function renderDirs(id) {
+  const n = findNode(id), box = $('dirs');
+  const links = n?.links || [];
+  box.hidden = links.length < 1;
+  // 화살표 하나에 목적지가 여럿이면(갈림이 있는 지나가는 지점 너머) 목적지마다 칩을 하나씩
+  box.replaceChildren(...links.flatMap(l => {
+    const dests = destinations(id, l.to);
+    return dests.map(d => {
+      const name = dests.length === 1 ? destLabel(id, l.to) : d.name;
+      const b = document.createElement('button');
+      b.type = 'button'; b.dataset.to = l.to; b.dataset.yaw = arrowSpot(l).yaw; b.dataset.dir = chipYaw(l);
+      b.innerHTML = `<span class="arr">${DIR_SVG}</span><span>${esc(name)}</span>`;
+      b.setAttribute('aria-label', `${name} 쪽 보기`);
+      b.addEventListener('pointerenter', () => highlight(l.to));
+      b.addEventListener('pointerleave', () => highlight(null));
+      b.onclick = () => {
+        if (moving) return;
+        if (b.dataset.onscreen === 'true') { goLink(l.to, d); return; }
+        viewer.animate({ yaw: rad(Number(b.dataset.yaw)), pitch: rad(-12), speed: '60rpm' });
+      };
+      return b;
+    });
+  }));
+  updateDirs();
+}
+function updateDirs() {
+  const yaw = viewer.getPosition().yaw, half = (viewer.state?.hFov || 60) * RAD / 2;   // 화면 가로 시야의 절반
+  const rel = y => Math.atan2(Math.sin(rad(y) - yaw), Math.cos(rad(y) - yaw));   // 시선 기준 상대 각(−π~π)
+  for (const b of $('dirs').children) {
+    b.querySelector('.arr').style.transform = `rotate(${rel(Number(b.dataset.dir))}rad)`;   // 바닥 화살표와 같은 쪽
+    b.dataset.onscreen = String(Math.abs(rel(Number(b.dataset.yaw))) < half * 0.9);      // 바닥 화살표가 화면 안에 있나
+  }
+  // 편집 창 ①의 칩 화살표 미리보기
+  const l = editing && findLink(vt.getCurrentNode()?.id, pickTo);
+  if (l) $('chipArr').style.transform = `rotate(${rel(chipYaw(l))}rad)`;
+}
+viewer.addEventListener('position-updated', updateDirs);
+viewer.addEventListener('zoom-updated', updateDirs);
+viewer.addEventListener('size-updated', updateDirs);
+
+markers.addEventListener('enter-marker', ({ marker }) => { if (marker.config.data?.goto) highlight(marker.config.data.goto); });
+markers.addEventListener('leave-marker', ({ marker }) => { if (marker.config.data?.goto) highlight(null); });
+markers.addEventListener('select-marker', ({ marker }) => {
+  const d = marker.config.data;
+  if (!d) return;
+  if (d.sign !== undefined) { if (editing && !placing && !signPlacing) selectSign(hereNode()?.signs?.[d.sign]); return; }   // 안내판은 보기만
+  if (d.goto) {   // 바닥 화살표·원·핀: 그 화살표로 이동 (편집 중 가는 곳을 골라 두었으면 이동하지 않고 자리 찍기)
+    if (editing && (pickTo || placing)) return;   // 편집 중 자리를 찍는 동안에는 이동하지 않음
+    goLink(d.goto);   // 목적지가 여럿이면 고르는 창
+    return;
+  }
+  if (editing) { if (d.label !== undefined) selectLabel(findNode(vt.getCurrentNode()?.id)?.labels?.[d.label]); return; }
+  if (hasInfo(d)) { openInfo(d); return; }
+  $('dTitle').textContent = d.text;
+  $('dText').textContent = d.detail || '(설명 없음)';
+  $('detail').hidden = false;
+});
+
+// ── 음성 안내 ──
+// "audio"(녹음 파일)가 있으면 그 파일을, 없으면 기기에 들어 있는 한국어 음성(음성 합성)으로 글을 읽는다.
+// 멈춘 뒤 늦게 오는 '끝남' 신호가 다음 재생을 끊지 않도록 재생마다 번호(seq)를 붙여 확인한다.
+const voice = (() => {
+  const synth = 'speechSynthesis' in window ? window.speechSynthesis : null;
+  let seq = 0, player = null, onDone = null;
+  synth?.getVoices();   // 목록을 미리 불러 둔다(처음 호출 땐 빈 목록일 수 있음)
+  const koVoice = () => synth?.getVoices().find(v => /^ko/i.test(v.lang));
+  const finish = id => { if (id !== seq) return; player = null; const cb = onDone; onDone = null; cb?.(); };
+  function stop() {
+    seq++;
+    synth?.cancel();
+    if (player) { player.pause(); player = null; }
+    const cb = onDone; onDone = null; cb?.();
+  }
+  function play({ text = '', audio = '' }, done) {
+    stop();
+    const id = seq; onDone = done;
+    if (audio) {
+      player = new Audio(audio);
+      player.onended = player.onerror = () => finish(id);
+      player.play().catch(() => finish(id));   // 휴대폰은 화면을 한 번 누르기 전에는 소리를 못 냄
+      return;
+    }
+    const parts = String(text).split(/\n+|(?<=[.!?])\s+/).map(t => t.trim()).filter(Boolean);
+    if (!synth || !parts.length) { finish(id); return; }
+    const v = koVoice();
+    parts.forEach((t, i) => {
+      const u = new SpeechSynthesisUtterance(t);
+      u.lang = 'ko-KR'; if (v) u.voice = v;
+      if (i === parts.length - 1) { u.onend = () => finish(id); u.onerror = () => finish(id); }
+      synth.speak(u);   // 문장별로 나눠 읽는다(긴 글을 한 번에 넘기면 중간에 끊기는 브라우저가 있음)
+    });
+  }
+  return { play, stop, canSpeak: !!synth };
+})();
+// 팝업 글을 읽을 문장으로: 제목 → 요약 → 본문
+const infoSpeech = d => [d.text, d.detail, d.body].filter(Boolean).map(t => /[.!?]$/.test(t.trim()) ? t : t + '.').join('\n');
+
+// ── 자세히 보기 팝업 ──
+// body: 빈 줄로 문단을 나누고, 줄바꿈은 그대로. images: "경로" 또는 { "src", "caption" }
+function openInfo(d) {
+  $('infoTitle').textContent = d.text;
+  const box = $('infoBody');
+  box.replaceChildren();
+  if (d.detail) box.insertAdjacentHTML('beforeend', `<p class="lead">${esc(d.detail)}</p>`);
+  // 영상: "유튜브 주소" 또는 "img/info/파일.mp4", 또는 { "src", "caption" }. 사용법 영상이 먼저 보이도록 맨 위에
+  for (const v of (d.videos || []).map(v => typeof v === 'string' ? { src: v } : v).filter(v => v && v.src)) {
+    const yt = youtubeId(v.src);
+    const title = esc(v.caption || d.text);
+    const player = yt
+      ? `<iframe src="https://www.youtube-nocookie.com/embed/${yt.id}?rel=0&playsinline=1" title="${title}" loading="lazy"
+           allow="accelerometer; encrypted-media; gyroscope; picture-in-picture; fullscreen" allowfullscreen
+           referrerpolicy="strict-origin-when-cross-origin"></iframe>`
+      : `<video src="${esc(v.src)}" controls playsinline preload="metadata" aria-label="${title}"></video>`;
+    box.insertAdjacentHTML('beforeend', `<div class="video${yt?.tall ? ' tall' : ''}">${player}${v.caption ? `<div class="cap">${esc(v.caption)}</div>` : ''}</div>`);
+  }
+  const paras = String(d.body || '').split(/\n\s*\n/).map(t => t.trim()).filter(Boolean);
+  const imgs = (d.images || []).map(im => typeof im === 'string' ? { src: im } : im).filter(im => im && im.src);
+  // 문단과 사진을 번갈아 둔다(첫 문단 → 사진 → 다음 문단 …). 남는 쪽은 뒤에 이어서
+  const n = Math.max(paras.length, imgs.length);
+  for (let i = 0; i < n; i++) {
+    if (paras[i]) box.insertAdjacentHTML('beforeend', `<p>${esc(paras[i]).replace(/\n/g, '<br>')}</p>`);
+    if (imgs[i]) box.insertAdjacentHTML('beforeend',
+      `<figure><img src="${esc(imgs[i].src)}" alt="${esc(imgs[i].caption || d.text)}" loading="lazy">${imgs[i].caption ? `<figcaption>${esc(imgs[i].caption)}</figcaption>` : ''}</figure>`);
+  }
+  box.scrollTop = 0;
+  $('detail').hidden = true;
+  // 읽어 주기: 녹음 파일이 있거나, 기기가 음성 합성을 지원하면 보인다
+  const sp = $('infoSpeak');
+  sp.hidden = !(d.audio || (voice.canSpeak && (d.detail || d.body)));
+  sp.setAttribute('aria-pressed', 'false'); sp.textContent = '🔊 읽어 주기';
+  sp.onclick = () => {
+    if (sp.getAttribute('aria-pressed') === 'true') { voice.stop(); return; }
+    sp.setAttribute('aria-pressed', 'true'); sp.textContent = '■ 멈추기';
+    voice.play({ text: infoSpeech(d), audio: d.audio }, () => { sp.setAttribute('aria-pressed', 'false'); sp.textContent = '🔊 읽어 주기'; });
+  };
+  $('info').showModal();
+  updateInfoMore();
+  box.querySelectorAll('img, video, iframe').forEach(el => el.addEventListener(el.tagName === 'VIDEO' ? 'loadedmetadata' : 'load', updateInfoMore, { once: true }));
+}
+// 아래로 더 볼 내용이 있을 때만 아래쪽을 흐리게
+function updateInfoMore() {
+  const b = $('infoBody');
+  $('infoSheet').classList.toggle('more', b.scrollHeight - b.scrollTop - b.clientHeight > 8);
+}
+$('infoBody').addEventListener('scroll', updateInfoMore, { passive: true });
+$('infoClose').addEventListener('click', () => $('info').close());
+// 닫힐 때(×, 바깥, Esc 모두) 내용을 비워 재생 중인 영상을 멈춘다
+$('info').addEventListener('close', () => { voice.stop(); $('infoBody').replaceChildren(); });
+// 바깥(어두운 부분)을 눌러도 닫힘
+$('info').addEventListener('click', e => { if (e.target === $('info')) $('info').close(); });
+
+// ── 편집 모드 ──
+// 이 컴퓨터(localhost)에서 열었거나 주소에 ?edit 가 있으면 [편집] 버튼이 보인다(배포한 주소에서는 안 보임).
+// 고친 내용은 바로 화면에 반영되고, [저장](⌘S)을 누르면 편집한 투어 전체를 tools/serve.py 에 보내 설정 파일에 쓴다.
+// 같은 "group" 의 다른 파일(초등·중등·전체)에는 서버가 이전 판과 비교해 바뀐 것만 옮긴다(각 파일만의 글씨·이름은 남음). [되돌리기](⌘Z)는 마지막 변경 전으로.
+const canEdit = !kiosk && (params.has('edit') || /^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname));
+$('modeBtn').hidden = !canEdit;
+const deg = r => { let d = r * 180 / Math.PI; if (d > 180) d -= 360; return Math.round(d * 10) / 10 || 0; };   // 소수 한 자리, −180~180
+const nameOf = id => findNode(id)?.name || id;
+let curId = '';   // 지점 목록을 다시 만드는 동안(사진 다시 읽는 동안)에도 지금 지점을 알기 위해
+const hereNode = () => findNode(vt.getCurrentNode()?.id || curId);
+let pickTo = '';                 // ①에서 고른 가는 곳
+let pickMode = 'target';         // 바닥을 누르면 무엇을 정할지: 'target' 도착 자리 / 'arrow' 출발 화살표
+let selLabel = null, placing = null;   // ③ 고른 글씨 / 'new' 또는 옮길 글씨(다음에 사진을 누른 자리에 놓음)
+let selSign = null, signPlacing = null;   // ④ 고른 안내판 / 'new' 또는 옮길 안내판
+let placePart = 'dot';                 // 옮길 글씨의 어느 쪽: 'dot' 가리키는 점(yaw·pitch) / 'box' 따로 뺀 글씨 자리
+const undo = [], redo = [];      // 변경 전 상태 묶음 / 되돌린 것(다시 하기용)
+let changes = 0;
+const snapshot = () => JSON.stringify(tour);
+// 무엇을 바꾸기 전에 부른다. what: 되돌리기 버튼에 보일 설명
+function mark(what) {
+  undo.push({ what, state: snapshot() });
+  if (undo.length > 50) undo.shift();
+  redo.length = 0;   // 새로 고치면 「다시」 할 것은 없어진다
+  changes++;
+  setStatus();
+}
+function setStatus(msg) {
+  $('eStatus').textContent = msg || (changes ? `저장 안 된 변경 ${changes}개` : '바뀐 것 없음');
+  $('eSave').disabled = !changes;
+  $('eUndo').disabled = !undo.length;
+  $('eUndo').title = undo.length ? `되돌리기: ${undo[undo.length - 1].what} (⌘Z)` : '';
+  $('eRedo').disabled = !redo.length;
+  $('eRedo').title = redo.length ? `다시 하기: ${redo[redo.length - 1].what} (⌘⇧Z)` : '';
+}
+// from 에서 하나 꺼내 그 상태로 바꾸고, 지금 상태는 to 에 넣는다(되돌리기 ↔ 다시 하기)
+function restore(from, to, dir) {
+  const u = from.pop(); if (!u) return;
+  to.push({ what: u.what, state: snapshot() });
+  const st = JSON.parse(u.state);
+  Object.keys(tour).forEach(k => delete tour[k]); Object.assign(tour, st);
+  changes = Math.max(0, changes + dir);
+  selLabel = null; placing = null; pickTo = ''; selSign = null; signPlacing = null; $('eSignForm').hidden = true; $('eLabelForm').hidden = true;
+  closeColorPop();   // 고른 것이 풀리므로 색 고르기 창도 닫음
+  rebuild();
+  setStatus(`${dir < 0 ? '되돌림' : '다시 함'}: ${u.what}`);
+}
+$('eUndo').addEventListener('click', () => restore(undo, redo, -1));
+$('eRedo').addEventListener('click', () => restore(redo, undo, 1));
+// 지점이 늘거나 줄거나 순서가 바뀌면 뷰어의 지점 목록을 통째로 다시 만든다(지금 지점은 유지)
+function rebuild(keepId) {
+  const id = keepId || vt.getCurrentNode()?.id || curId;
+  curId = findNode(id) ? id : tour.start || tour.nodes[0].id;
+  vt.setNodes(tour.nodes.map(buildNode), curId);
+  setGallery();
+  renderEditor();
+}
+// 값만 바뀐 지점은 화살표·원·핀·글씨만 다시 그림
+function refreshNode(id) {
+  const b = buildNode(findNode(id));
+  vt.updateNode({ id, links: b.links, markers: b.markers });
+  if (id === vt.getCurrentNode()?.id) renderDirs(id);
+}
+
+// ── 지점 목록: 순서 · 추가 · 삭제 ──
+function renderNodes() {
+  const here = hereNode()?.id;
+  $('eNodes').replaceChildren(...tour.nodes.map((n, i) => {
+    const li = document.createElement('li');
+    const go = document.createElement('button');
+    go.type = 'button'; go.className = 'go';
+    go.setAttribute('aria-current', String(n.id === here));
+    const tag = !(n.links || []).length ? '연결 없음' : n.pass ? '지나감' : (n.links || []).some(l => l.check || !l.target) ? '확인 필요' : '';
+    go.innerHTML = `<img src="${esc(thumbOf(n))}" alt="" loading="lazy"><span>${esc(n.name)}</span><small>${tag}</small>`;
+    go.onclick = () => { toggleNodePop(false); if (n.id !== here) vt.setCurrentNode(n.id); };
+    const up = document.createElement('button'), dn = document.createElement('button');
+    for (const [b, d, t] of [[up, -1, '▲'], [dn, 1, '▼']]) {
+      b.type = 'button'; b.className = 'mv'; b.textContent = t; b.setAttribute('aria-label', `${n.name} ${d < 0 ? '위로' : '아래로'}`);
+      b.disabled = i + d < 0 || i + d >= tour.nodes.length;
+      b.onclick = () => { mark(`${n.name} 순서`); tour.nodes.splice(i, 1); tour.nodes.splice(i + d, 0, n); setGallery(); renderNodes(); renderTour(); };
+    }
+    li.append(go, up, dn);
+    return li;
+  }));
+  $('eDelNode').disabled = tour.nodes.length < 2;
+}
+// 새 지점: 사진을 img/ 에 올리고, 지금 지점 다음에 넣고, 지금 지점과 양쪽으로 잇는다(바로 도착 자리를 찍게)
+// 새 지점 번호: 동선 맨 끝이면 다음 번호(14, 15…), 중간이면 앞 지점 번호에 -1, -2 (03 → 03-1, 사이에 찍은 사진 규칙)
+function nextId(after) {
+  const i = tour.nodes.indexOf(after);
+  if (i === tour.nodes.length - 1) {
+    const maxNum = Math.max(0, ...tour.nodes.map(n => parseInt(n.id, 10) || 0));
+    return String(maxNum + 1).padStart(2, '0');
+  }
+  const base = after.id.replace(/-\d+$/, '');
+  for (let k = 1; ; k++) if (!findNode(`${base}-${k}`)) return `${base}-${k}`;
+}
+$('eAddPhoto').addEventListener('change', async () => {
+  const files = [...$('eAddPhoto').files].sort(byFileName); $('eAddPhoto').value = '';
+  if (!files.length) return;
+  const first = hereNode(), typed = $('eAddName').value.trim();
+  const made = [], notes = [];
+  let prev = first, failed = '';
+  // 여러 장이면 파일 이름 순서대로: 지금 지점 → 1번째 → 2번째 … 로 차례로 잇는다
+  for (const [k, f] of files.entries()) {
+    const id = nextId(prev);
+    // 이름: 한 장이면 「새 지점 이름」 칸, 아니면 사진 파일 이름에서
+    const name = (files.length === 1 && typed) || panoName(f) || `새 지점 ${k + 1}`;
+    $('eAddNow').textContent = `올리는 중… ${k + 1}/${files.length} (${(f.size / 1048576).toFixed(1)}MB, ${name})`;
+    let r;
+    try { r = await uploadPano(f, id, name); } catch (e) { failed = `${name}: ${e.message}`; break; }
+    const node = { id, name, photo: r.path, startYaw: 0, links: [], labels: [] };
+    if (r.thumb) THUMBS[r.path] = r.thumb;   // 서버가 만든 썸네일
+    if (r.note) notes.push(r.note);
+    if (!made.length) mark(files.length > 1 ? `새 지점 ${files.length}개` : `새 지점 「${name}」`);
+    tour.nodes.splice(tour.nodes.indexOf(prev) + 1, 0, node);
+    // 첫 장은 지금 보는 쪽으로, 그다음부터는 임시로 앞(0°)·뒤(180°). 도착 자리를 찍으면 맞춰진다
+    const yaw = made.length ? 0 : deg(viewer.getPosition().yaw);
+    (prev.links ||= []).push({ to: id, yaw, pitch: -10, check: true });
+    node.links.push({ to: prev.id, yaw: yaw + 180 > 180 ? yaw - 180 : yaw + 180, pitch: -10, check: true });
+    made.push(node); prev = node;
+  }
+  if (made.length) {
+    rebuild(first.id);
+    $('eAddName').value = '';
+    pickTo = made[0].id; showTab('move', $('eLinks')); renderEditor(); highlight(pickTo);
+  }
+  const done = made.length ? `${made.length > 1 ? `${made.length}개 지점(${made.map(n => n.name).join(' → ')})` : `「${made[0].name}」`}을 ${first.name} 다음에 넣었습니다. ${notes.length ? notes[0] + '. ' : ''}이제 바닥에서 도착 자리를 누르세요` : '';
+  $('eAddNow').textContent = failed ? `${done} 못 올림 — ${failed} (tools/serve.sh 로 연 서버에서만 됩니다)`.trim() : done;
+});
+$('eDelNode').addEventListener('click', () => {
+  const n = hereNode();
+  if (!n || tour.nodes.length < 2) return;
+  const inbound = tour.nodes.filter(x => (x.links || []).some(l => l.to === n.id)).map(x => x.name);
+  // 확인 창은 브라우저에 따라 막혀서(앱 안 브라우저 등) 바로 지우고, ← 되돌리기로 살릴 수 있게 알려 준다
+  mark(`「${n.name}」 지우기`);
+  const i = tour.nodes.indexOf(n);
+  tour.nodes.splice(i, 1);
+  for (const x of tour.nodes) x.links = (x.links || []).filter(l => l.to !== n.id);
+  if (tour.start === n.id) tour.start = tour.nodes[0].id;
+  rebuild((tour.nodes[i - 1] || tour.nodes[0]).id);
+  setStatus(`「${n.name}」 지점을 지움(사진 파일은 남음${inbound.length ? `, 오는 화살표 ${inbound.length}개도` : ''}) · ← 로 되돌리기`);
+});
+
+// ── 이 지점 ──
+function renderNode() {
+  const n = hereNode(); if (!n) return;
+  $('nName').value = n.name; $('nSay').value = n.say || '';
+  $('eHereName').textContent = n.name;
+  $('nPhoto').textContent = n.photo.split('/').pop();
+  $('ePass').checked = !!n.pass;
+  $('eStartNow').textContent = `지점 목록·처음 화면으로 열었을 때 (지금 ${n.startYaw ?? 0}°)`;
+}
+let nameTimer = 0;
+$('nName').addEventListener('input', () => {
+  const n = hereNode(); const v = $('nName').value.trim(); if (!n || !v) return;
+  if (!nameTimer) mark(`「${n.name}」 이름`);   // 글자마다 되돌리기 항목이 생기지 않게 잠시 묶음
+  clearTimeout(nameTimer); nameTimer = setTimeout(() => { nameTimer = 0; }, 1500);
+  n.name = v; $('nodeName').textContent = v; $('eHereName').textContent = v;
+  vt.updateNode({ id: n.id, name: v, caption: v });
+  setGallery(); renderNodes(); renderTour(); refreshNode(n.id);
+  // 다른 지점의 화살표 이름표·칩에도 이 이름이 쓰이므로(지나가는 지점을 거쳐 오는 화살표 포함) 모두 다시 그린다. 입력이 멈춘 뒤 한 번
+  clearTimeout(renameTimer);
+  renameTimer = setTimeout(() => { for (const x of tour.nodes) if (x.id !== n.id) refreshNode(x.id); }, 300);
+});
+let renameTimer = 0;
+$('nSay').addEventListener('input', () => { const n = hereNode(); if (!n) return; if (!nameTimer) mark('도착 음성'); n.say = $('nSay').value.trim(); if (!n.say) delete n.say; });
+$('ePass').addEventListener('change', () => {
+  const n = hereNode(); mark(`「${n.name}」 지나가는 지점`);
+  if ($('ePass').checked) n.pass = true; else delete n.pass;
+  setGallery(); renderNodes();
+});
+$('eStart').addEventListener('click', () => {
+  const n = hereNode(); mark(`「${n.name}」 처음 방향`);
+  n.startYaw = deg(viewer.getPosition().yaw);
+  renderNode();
+});
+
+// ── ① 이동 화살표 · 도착 자리 ──
+function renderLinks() {
+  const here = hereNode(); if (!here) return;
+  $('eLinks').replaceChildren(...(here.links || []).map(l => {
+    const row = document.createElement('div');
+    row.className = 'row';
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.setAttribute('role', 'radio');
+    b.setAttribute('aria-checked', String(l.to === pickTo));
+    const [txt, cls] = !l.target ? ['도착 자리 없음', 'warn'] : l.check || l.target.check ? ['추정값 · 확인 필요', 'warn'] : [l.arrow ? '찍음 · 화살표 따로' : '찍음', ''];
+    b.innerHTML = `<span>${esc(nameOf(l.to))}</span><small class="${cls}">${txt}</small>`;
+    b.onclick = () => { pickTo = pickTo === l.to ? '' : l.to; highlight(pickTo || null); renderLinks(); showPreview(); };
+    const x = document.createElement('button');
+    x.type = 'button'; x.className = 'x'; x.textContent = '✕';
+    x.setAttribute('aria-label', `${nameOf(l.to)} 연결 끊기`);
+    x.onclick = () => disconnect(here.id, l.to);
+    row.append(b, x);
+    return row;
+  }));
+  const pl = findLink(here.id, pickTo);
+  $('ePickRow').hidden = !pl;
+  $('pickTarget').setAttribute('aria-pressed', String(pickMode === 'target'));
+  $('pickArrow').setAttribute('aria-pressed', String(pickMode === 'arrow'));
+  $('arrowAuto').hidden = !pl?.arrow;
+  $('eChipRow').hidden = !pl;
+  // 갈 수 있는 곳(목적지): 비우면 자동, 지점 번호를 적으면 그 지점들
+  $('eDestsRow').hidden = !pl;
+  if (pl) {
+    const auto = destinations(here.id, pl.to);
+    if (document.activeElement !== $('eDests')) $('eDests').value = (pl.dests || []).map(id => pl.destNames?.[id] ? `${id}=${pl.destNames[id]}` : id).join(', ');
+    $('eDests').placeholder = `비우면 자동`;
+    $('eDestsNow').textContent = `(${pl.dests?.length ? '직접 정함' : '자동'}: ${auto.map(d => d.name).join(' / ')})`;
+  }
+  // 화살표 이름표: 비우면 가는 곳 이름(지나가는 지점을 거치면 최종 도착지)이 자동으로. 따로 적으면 그 글자(link.label)
+  $('eLabelRow').hidden = !pl;
+  if (pl) {
+    const auto = (() => { const st = finalStop(here.id, pl.to); return st?.name || ''; })();
+    if (document.activeElement !== $('eLinkLabel')) $('eLinkLabel').value = pl.label || '';
+    $('eLinkLabel').placeholder = `비우면 자동: ${auto}`;
+    $('eLinkLabelNow').textContent = pl.label ? '(직접 적음 · 비우면 자동)' : '(자동)';
+  }
+  if (pl) {
+    if (!$('chipArr').firstChild) $('chipArr').innerHTML = DIR_SVG;
+    $('chipNow').textContent = pl.chip != null ? `직접 정함 ${pl.chip}°` : '자동(바닥 화살표와 같게)';
+    $('chipAuto').hidden = pl.chip == null;
+    updateDirs();
+  }
+  const linked = new Set([here.id, ...(here.links || []).map(l => l.to)]);
+  $('eConnTo').replaceChildren(new Option('이을 지점 고르기', ''),
+    ...tour.nodes.filter(n => !linked.has(n.id)).map(n => new Option(`${n.id} ${n.name}`, n.id)));
+}
+$('pickTarget').addEventListener('click', () => { pickMode = 'target'; renderLinks(); });
+let destsTimer = 0;
+$('eDests').addEventListener('input', () => {
+  const here = hereNode(), l = findLink(here?.id, pickTo); if (!l) return;
+  // 「05=나가기, 07, 08」: 번호=보여 줄 이름. 쉼표가 없으면 띄어쓰기로 나눈다
+  const raw = $('eDests').value, names = {};
+  const ids = raw.split(raw.includes(',') ? /,/ : /\s+/).map(x => x.trim()).filter(Boolean).map(x => {
+    const [id, ...rest] = x.split('='), name = rest.join('=').trim();
+    if (name) names[id.trim()] = name;
+    return id.trim();
+  }).filter(Boolean);
+  const bad = ids.filter(id => !pathTo(here.id, l.to, id));
+  if (bad.length) { $('eDestsNow').textContent = `(「${bad.join(', ')}」: 없는 번호이거나 이 화살표로 갈 수 없는 지점)`; return; }
+  if (!destsTimer) mark(`${nameOf(pickTo)} 화살표의 목적지`);
+  clearTimeout(destsTimer); destsTimer = setTimeout(() => { destsTimer = 0; }, 1500);
+  if (ids.length) l.dests = [...new Set(ids)]; else delete l.dests;
+  if (ids.length && Object.keys(names).length) l.destNames = names; else delete l.destNames;
+  refreshNode(here.id); renderLinks(); highlight(pickTo);
+});
+let linkLabelTimer = 0;
+$('eLinkLabel').addEventListener('input', () => {
+  const here = hereNode(), l = findLink(here?.id, pickTo); if (!l) return;
+  if (!linkLabelTimer) mark(`${nameOf(pickTo)} 화살표 이름표`);
+  clearTimeout(linkLabelTimer); linkLabelTimer = setTimeout(() => { linkLabelTimer = 0; }, 1500);
+  const v = $('eLinkLabel').value.trim();
+  if (v) l.label = v; else delete l.label;
+  refreshNode(here.id); renderLinks(); highlight(pickTo);
+});
+$('chipHere').addEventListener('click', () => {
+  const here = hereNode().id, l = findLink(here, pickTo); if (!l) return;
+  mark(`${nameOf(pickTo)} 이름 칩 화살표`);
+  l.chip = deg(viewer.getPosition().yaw); renderLinks(); renderDirs(here);
+});
+$('chipAuto').addEventListener('click', () => {
+  const here = hereNode().id, l = findLink(here, pickTo); if (l?.chip == null) return;
+  mark(`${nameOf(pickTo)} 이름 칩 화살표 자동`);
+  delete l.chip; renderLinks(); renderDirs(here);
+});
+$('pickArrow').addEventListener('click', () => { pickMode = 'arrow'; renderLinks(); });
+$('arrowAuto').addEventListener('click', () => {
+  const here = hereNode().id, l = findLink(here, pickTo); if (!l?.arrow) return;
+  mark(`${nameOf(pickTo)} 출발 화살표 자동`);
+  delete l.arrow; refreshNode(here); renderLinks(); highlight(pickTo);
+});
+$('eConn').addEventListener('click', () => {
+  const a = hereNode(), b = findNode($('eConnTo').value);
+  if (!a || !b) return;
+  mark(`${a.name} ↔ ${b.name} 연결`);
+  const yawA = deg(viewer.getPosition().yaw);   // 새 화살표는 우선 지금 보는 쪽에. 바닥을 찍으면 바뀜
+  (a.links ||= []).push({ to: b.id, yaw: yawA, pitch: -10, check: true });
+  (b.links ||= []).push({ to: a.id, yaw: 0, pitch: -10, check: true });
+  refreshNode(b.id); refreshNode(a.id); setGallery();
+  pickTo = b.id; renderEditor(); highlight(pickTo);
+  setStatus(`${b.name}와(과) 이었습니다. 이제 바닥에서 도착 자리를 누르세요`);
+});
+function disconnect(a, b) {
+  mark(`${nameOf(a)} ↔ ${nameOf(b)} 끊기`);
+  for (const [x, y] of [[a, b], [b, a]]) { const n = findNode(x); n.links = (n.links || []).filter(l => l.to !== y); }
+  if (pickTo === b) pickTo = '';
+  refreshNode(b); refreshNode(a); setGallery();
+  renderEditor();
+  setStatus(`「${nameOf(a)}」 ↔ 「${nameOf(b)}」 연결을 끊음 · ← 로 되돌리기`);
+}
+// 가는 곳의 다음 사진을 작은 뷰어로. 처음 방향 = 화살표로 도착했을 때 보는 방향. 누르거나 끌어서 도착 방향(arrive)을 정함
+let mini = null, miniFor = '';
+function showPreview() {
+  const here = hereNode()?.id, to = findNode(pickTo);
+  $('ePrevBox').hidden = !to;
+  if (!to) { miniFor = ''; return; }
+  const dests = destinations(here, to.id);
+  $('ePrevName').textContent = `다음 사진: ${to.photo.split('/').pop()}` + (dests.some(d => d.id !== to.id) ? ` (방문자는 지나감 → ${dests.map(d => d.name).join(' / ')})` : '');
+  const a = arriveFor(here, to.id), l = findLink(here, to.id);
+  const onward = to.pass ? (to.links || []).filter(x => x.to !== here) : [];
+  $('ePrevNow').textContent = onward.length >= 1 ? '그냥 지나가는 지점이라 방문자는 다음 구간 방향으로 이어 걷습니다(여기서 정한 방향은 멈췄을 때만)'
+    : l?.arrive ? `지정됨: ${a.yaw}°` : `지금: 걸어온 방향 그대로 (${Math.round(((a.yaw + 540) % 360) - 180)}°)`;
+  const key = `${here}>${to.id}`;
+  if (miniFor === key) return;   // 같은 화살표면 사용자가 돌려 놓은 방향을 그대로 둠
+  miniFor = key;
+  // 다음 지점에 도착했을 때 보일 화살표(가는 곳 이름 + 바닥 점)를 미리보기에 그려서, 어느 쪽을 보며 도착하면 좋을지 알 수 있게
+  // 바닥 화살표·점선 길은 실제 화면과 같은 것을 그대로 쓴다(buildNode). 온 곳 쪽은 흐리게
+  // 바닥 화살표·점선 길·안내 글씨(따로 뺀 글씨의 선·점 포함)는 실제 화면과 같은 마커를, 안내판은 아래에서 따로(크게) 그린다
+  const MINI_K = 2.6;   // 미리보기는 화각이 넓어 3D 요소(화살표·안내판)가 그대로면 아주 작게 보임
+  const floor = buildNode({ ...to, signs: undefined }).markers.filter(m => /-(arrow|path)-/.test(m.id) || /-m\d+(-line|-dot)?$/.test(m.id)).map(m => {
+    const back = m.id.endsWith(`-${here}`);
+    const el = m.elementLayer || m.element;
+    if (el) {
+      el.style.pointerEvents = 'none'; if (back) el.style.opacity = '.45';
+      // 미리보기는 화각이 넓어 그대로면 아주 작게 보이므로 크게
+      if (el.classList.contains('farrow')) el.style.width = el.style.height = Math.round(parseFloat(el.style.width) * MINI_K) + 'px';
+    }
+    const leader = m.className === 'leader';
+    return { ...m, id: 'mf-' + m.id, data: undefined, ...(m.polyline ? { svgStyle: { ...m.svgStyle, strokeWidth: leader ? '2px' : '4px', opacity: back ? .35 : 1 } } : {}) };
+  });
+  // 안내판: 크기·글씨·틀을 같은 비율로 키운 복사본으로(편집 중 고르기·끌기와 상관없게 누를 수 없게)
+  for (const [i, g] of (to.signs || []).entries()) {
+    const k = { ...g, size: Math.round((g.size || 320) * MINI_K), font: Math.round(signFont(g) * MINI_K), ...(g.height ? { height: Math.round(g.height * MINI_K) } : {}) };
+    const el = signElement(k, i); el.style.pointerEvents = 'none';
+    floor.push({ id: `mf-s${i}`, position: { yaw: g.yaw + 'deg', pitch: g.pitch + 'deg' }, elementLayer: el,
+      rotation: { yaw: (g.turn || 0) + 'deg', pitch: (g.tilt || 0) + 'deg', roll: (g.roll || 0) + 'deg' }, zIndex: 5 });
+  }
+  const miniMarkers = floor.concat((to.links || []).map(x => {
+    const back = x.to === here, t = x.target || { yaw: x.yaw ?? 0, pitch: -10 };
+    return {
+      id: `mp-${x.to}`, position: { yaw: t.yaw + 'deg', pitch: Math.max(-35, Math.min(MAX_UP, t.pitch)) + 'deg' }, anchor: 'bottom center',
+      html: `<div class="mpin${back ? ' back' : ''}"><span>${esc(back ? `${nameOf(x.to)} (온 곳)` : destLabel(to.id, x.to))}</span><i></i><b></b></div>`
+    };
+  }));
+  const position = { yaw: a.yaw + 'deg', pitch: a.pitch + 'deg' };
+  if (!mini) {
+    mini = new Viewer({
+      container: 'ePrev', panorama: to.photo, adapter: EquirectangularAdapter.withConfig({ useXmpData: false }),
+      navbar: false, defaultZoomLvl: 0, defaultYaw: position.yaw, defaultPitch: position.pitch,
+      mousewheel: false, keyboard: false, loadingTxt: '다음 사진을 불러오는 중…',
+      plugins: [MarkersPlugin.withConfig({ markers: miniMarkers })]
+    });
+    mini.addEventListener('click', ({ data }) => {
+      if (data.rightclick) return;
+      const p = { yaw: data.yaw, pitch: 0 };
+      mini.animate({ ...p, speed: 400 });
+      saveArrive(p);
+    });
+  } else {
+    const mk = mini.getPlugin(MarkersPlugin);
+    mk.clearMarkers();
+    mini.setPanorama(to.photo, { position, zoom: 0, transition: false, showLoader: true }).then(() => mk.setMarkers(miniMarkers), () => {});
+  }
+}
+function saveArrive(p) {
+  const here = hereNode()?.id, l = findLink(here, pickTo);
+  if (!l || !mini) return;
+  p = p || mini.getPosition();
+  mark(`${nameOf(pickTo)} 도착 방향`);
+  l.arrive = { yaw: deg(p.yaw), pitch: Math.max(-30, Math.min(30, deg(p.pitch))) };
+  showPreview(); showArrive();
+}
+$('ePrevSave').addEventListener('click', () => saveArrive());
+
+// ── ② 도착 방향(이 지점에서) ──
+function renderFrom() {
+  const here = hereNode(); if (!here) return;
+  const froms = tour.nodes.filter(n => (n.links || []).some(l => l.to === here.id));
+  const sel = $('eFrom'), keep = sel.value;
+  sel.replaceChildren(...froms.map(n => new Option(`${nameOf(n.id)}에서`, n.id)));
+  sel.value = froms.some(n => n.id === cameFrom) ? cameFrom : froms.some(n => n.id === keep) ? keep : froms[0]?.id || '';
+  showArrive();
+}
+function showArrive() {
+  const l = findLink($('eFrom').value, hereNode()?.id);
+  $('eArrive').disabled = !l;
+  $('eArriveNow').textContent = !l ? '이 지점으로 오는 화살표가 없음' : l.arrive ? `위 지점에서 화살표로 왔을 때 (지금 ${l.arrive.yaw}°)` : '위 지점에서 화살표로 왔을 때 (지금: 걸어온 방향 그대로)';
+}
+$('eFrom').addEventListener('change', showArrive);
+$('eArrive').addEventListener('click', () => {
+  const here = hereNode().id, from = $('eFrom').value, l = findLink(from, here);
+  if (!l) return;
+  mark(`${nameOf(here)} 도착 방향`);
+  const p = viewer.getPosition();
+  l.arrive = { yaw: deg(p.yaw), pitch: Math.max(-30, Math.min(30, deg(p.pitch))) };
+  showArrive();
+});
+
+// ── ③ 안내 글씨 · 팝업 ──
+const cleanLabel = m => {
+  const o = { text: m.text, yaw: m.yaw, pitch: m.pitch };
+  if (m.box) o.box = m.box;
+  for (const k of ['detail', 'body', 'audio']) if (m[k]) o[k] = m[k];
+  for (const k of ['videos', 'images']) if (m[k]?.length) o[k] = m[k];
+  return o;
+};
+function renderLabels() {
+  const here = hereNode(); if (!here) return;
+  $('eLabels').replaceChildren(...(here.labels || []).map(m => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.setAttribute('aria-pressed', String(m === selLabel));
+    b.innerHTML = `<span>${esc(m.text || '(글씨 없음)')}</span><small>${hasInfo(m) ? '팝업' : m.detail ? '설명' : ''}</small>`;
+    b.onclick = () => selectLabel(m === selLabel ? null : m);
+    return b;
+  }));
+  const msg = placing === 'new' ? '사진에서 새 글씨를 놓을 자리를 누르세요'
+    : placing && placePart === 'box' ? `「${placing.text}」 글씨를 둘 빈 자리를 누르세요(가리키는 점과 선으로 이어집니다)`
+    : placing ? `사진에서 「${placing.text}」${placing.box ? '이 가리킬 점' : '을 옮길'} 자리를 누르세요` : '';
+  $('ePlaceNow').textContent = msg ? msg + ' (Esc 취소)' : '';
+  const waitDot = !!placing && placing !== 'new' && placePart === 'dot', waitBox = !!placing && placing !== 'new' && placePart === 'box';
+  $('lMove').textContent = waitDot ? '자리 기다리는 중… (취소)' : selLabel?.box ? '점 위치 옮기기' : '위치 옮기기';
+  $('lMove').setAttribute('aria-pressed', String(waitDot));
+  $('lBox').textContent = waitBox ? '자리 기다리는 중… (취소)' : selLabel?.box ? '글씨 자리 옮기기' : '글씨 따로 빼기';
+  $('lBox').setAttribute('aria-pressed', String(waitBox));
+  $('lUnbox').hidden = !selLabel?.box;
+  $('eLabelNew').setAttribute('aria-pressed', String(placing === 'new'));
+  if (msg) showHint(msg + ' · 끌지 말고 한 번 누르세요'); else if (!moving && !autoWalking && !signPlacing) showHint('');
+}
+const lines = t => t.split('\n').map(x => x.trim()).filter(Boolean)
+  .map(x => { const [src, ...c] = x.split('|'); const cap = c.join('|').trim(); return cap ? { src: src.trim(), caption: cap } : src.trim(); });
+const unlines = a => (a || []).map(v => typeof v === 'string' ? v : v.caption ? `${v.src} | ${v.caption}` : v.src).join('\n');
+function selectLabel(m) {
+  const changed = m !== selLabel;
+  if (changed) { labelTimer = 0; lookTimer = 0; closeColorPop(); }   // 다른 글씨를 고르면 되돌리기 항목을 새로
+  selLabel = m || null; placing = null;
+  $('eLabelForm').hidden = !m;
+  if (m) {
+    $('lText').value = m.text || ''; $('lDetail').value = m.detail || ''; $('lBody').value = m.body || '';
+    $('lVideos').value = unlines(m.videos); $('lImages').value = unlines(m.images); $('lAudio').value = m.audio || '';
+    $('lUpNow').textContent = '';
+    showLabelLook(m);
+    if (changed || curTab !== 'label') showTab('label', $('eLabelForm'));   // 사진에서 골라도 글씨 탭의 양식이 바로 보이게
+  }
+  renderLabels();
+}
+// 안내 글씨 모양·색·크기·투명도 (안내판과 같은 색 견본)
+const labelAutoFg = m => m.shape === 'card' ? '#1f1d1a' : m.shape === 'plain' ? (m.bg || '#b45309') : lightColor(m.bg || '#b45309') ? '#1f1d1a' : '#ffffff';
+function showLabelLook(m) {
+  for (const b of $('lShape').children) b.setAttribute('aria-pressed', String(b.dataset.v === (m.shape || 'tag')));
+  $('lLineRow').hidden = !m.box;   // 선은 따로 뺀 글씨에만
+  $('lLineSame').hidden = !m.box;
+  for (const id of ['lBg', 'lFg', 'lLine']) refreshColor(id);
+  $('lPad').value = m.pad ?? 100; $('lPadV').textContent = `${m.pad ?? 100}%`;
+  $('lScale').value = m.scale ?? 100; $('lScaleV').textContent = `${m.scale ?? 100}%`;
+  $('lAlpha').value = m.alpha ?? 100; $('lAlphaV').textContent = `${m.alpha ?? 100}%`;
+}
+let lookTimer = 0;
+function setLabelLook(v) {
+  const m = selLabel; if (!m) return;
+  if (!lookTimer) mark(`글씨 「${m.text}」 모양`);
+  clearTimeout(lookTimer); lookTimer = setTimeout(() => { lookTimer = 0; }, 1500);
+  Object.assign(m, v);
+  for (const [k, def] of [['shape', 'tag'], ['bg', '#b45309'], ['scale', 100], ['pad', 100], ['alpha', 100], ['line', '#ffffff'], ['fg', null]]) if (m[k] == null || m[k] === def) delete m[k];
+  refreshNode(hereNode().id); showLabelLook(m);
+}
+$('lShape').addEventListener('click', e => { const v = e.target.closest('button')?.dataset.v; if (v) setLabelLook({ shape: v }); });
+$('lLineSame').addEventListener('click', () => setLabelLook({ line: selLabel?.bg || '#b45309' }));
+$('lScale').addEventListener('input', () => setLabelLook({ scale: Number($('lScale').value) }));
+$('lPad').addEventListener('input', () => setLabelLook({ pad: Number($('lPad').value) }));
+$('lAlpha').addEventListener('input', () => setLabelLook({ alpha: Number($('lAlpha').value) }));
+let labelTimer = 0;
+function labelInput() {
+  const m = selLabel; if (!m) return;
+  if (!labelTimer) mark(`글씨 「${m.text}」 내용`);
+  clearTimeout(labelTimer); labelTimer = setTimeout(() => { labelTimer = 0; }, 1500);
+  m.text = $('lText').value.trim() || '안내';
+  m.detail = $('lDetail').value.trim(); m.body = $('lBody').value.trim(); m.audio = $('lAudio').value.trim();
+  m.videos = lines($('lVideos').value); m.images = lines($('lImages').value);
+  for (const k of ['detail', 'body', 'audio']) if (!m[k]) delete m[k];
+  for (const k of ['videos', 'images']) if (!m[k].length) delete m[k];
+  refreshNode(hereNode().id);
+  renderLabels();
+}
+for (const id of ['lText', 'lDetail', 'lBody', 'lVideos', 'lImages', 'lAudio']) $(id).addEventListener('input', labelInput);
+$('eLabelNew').addEventListener('click', () => { const on = placing === 'new'; selectLabel(null); placing = on ? null : 'new'; renderLabels(); });
+$('lMove').addEventListener('click', () => { const on = placing === selLabel && placePart === 'dot'; placing = on ? null : selLabel; placePart = 'dot'; renderLabels(); });
+$('lBox').addEventListener('click', () => { const on = placing === selLabel && placePart === 'box'; placing = on ? null : selLabel; placePart = 'box'; renderLabels(); });
+$('lUnbox').addEventListener('click', () => {
+  const m = selLabel; if (!m?.box) return;
+  mark(`글씨 「${m.text}」 다시 붙이기`);
+  delete m.box; placing = null;
+  refreshNode(hereNode().id); renderLabels(); showLabelLook(m);
+});
+$('lPreview').addEventListener('click', () => { if (selLabel) openInfo({ ...cleanLabel(selLabel), detail: selLabel.detail || '' }); });
+$('lDelete').addEventListener('click', () => {
+  const m = selLabel, here = hereNode();
+  if (!m) return;
+  mark(`글씨 「${m.text}」 지우기`);
+  here.labels = here.labels.filter(x => x !== m);
+  selectLabel(null);
+  refreshNode(here.id);
+  setStatus(`「${m.text}」 글씨를 지움 · ← 로 되돌리기`);
+});
+$('lUpload').addEventListener('change', async () => {
+  const f = $('lUpload').files[0]; $('lUpload').value = '';
+  if (!f || !selLabel) return;
+  $('lUpNow').textContent = '올리는 중…';
+  try {
+    const res = await fetch('__upload?name=' + encodeURIComponent(f.name), { method: 'POST', body: f });
+    const r = await res.json().catch(() => ({ ok: false, error: `서버 응답 ${res.status}` }));
+    if (!r.ok) throw new Error(r.error);
+    const kind = f.type.split('/')[0];
+    if (kind === 'audio') $('lAudio').value = r.path;
+    else { const box = kind === 'video' ? $('lVideos') : $('lImages'); box.value = (box.value.trim() ? box.value.trim() + '\n' : '') + `${r.path} | `; }
+    labelInput();
+    $('lUpNow').textContent = `올림: ${r.path}`;
+  } catch (e) {
+    $('lUpNow').textContent = `못 올림: ${e.message} (tools/serve.sh 로 연 서버에서만 됩니다)`;
+  }
+});
+
+// ── ④ 안내판 · 간판 ──
+// 사진 속 벽·기둥·문에 붙은 판. 자리(yaw·pitch)에 3D 로 놓고 turn(좌우)·tilt(위아래)·roll(돌리기)로 벽면에 맞춘다
+function renderSigns() {
+  const here = hereNode(); if (!here) return;
+  $('eSigns').replaceChildren(...(here.signs || []).map(g => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.setAttribute('aria-pressed', String(g === selSign));
+    b.innerHTML = `<span>${esc(g.text || '(글씨 없음)')}</span><small>${signArrowDeg(g) != null ? '화살표' : ''}</small>`;
+    b.onclick = () => selectSign(g === selSign ? null : g);
+    return b;
+  }));
+  const msg = signPlacing === 'new' ? '사진에서 안내판을 붙일 자리(벽·기둥·문)를 누르세요'
+    : signPlacing === 'paste' ? `사진에서 복사한 「${signClip?.text}」 안내판을 놓을 자리를 누르세요`
+    : signPlacing ? `사진에서 「${signPlacing.text}」 안내판을 옮길 자리를 누르세요` : '';
+  // 붙여넣기: 복사해 둔 안내판이 있으면 보임(다른 장면·다른 투어 편집 화면에서도)
+  $('eSignPaste').hidden = !signClip;
+  $('eSignPaste').textContent = signPlacing === 'paste' ? '자리 기다리는 중… (취소)' : signClip ? `붙여넣기: ${signClip.text.split('\n')[0]}` : '붙여넣기';
+  $('eSignPaste').setAttribute('aria-pressed', String(signPlacing === 'paste'));
+  $('eSignNow').textContent = msg ? msg + ' (Esc 취소)' : '';
+  $('eSignNew').setAttribute('aria-pressed', String(signPlacing === 'new'));
+  const waiting = !!signPlacing && signPlacing !== 'new' && signPlacing !== 'paste';
+  $('sMove').textContent = waiting ? '자리 기다리는 중… (취소)' : '위치 옮기기';
+  $('sMove').setAttribute('aria-pressed', String(waiting));
+  if (msg) showHint(msg + ' · 끌지 말고 한 번 누르세요'); else if (!moving && !autoWalking && !placing) showHint('');
+  const selId = selSign ? `${here.id}-s${(here.signs || []).indexOf(selSign)}` : '';
+  for (const [id, el] of signEls) el.classList.toggle('sel', id === selId);
+  if (selSign) startGizmo(); else $('sgiz').hidden = true;
+}
+const SIGN_RANGES = [['sAlpha', 'alpha', 100, v => `${v}%`], ['sArrowScale', 'arrowScale', 100, v => `${v}%`], ['sSize', 'size', 320, v => `${v}`], ['sHeight', 'height', 0, v => v ? `${v}` : '자동'], ['sTurn', 'turn', 0, v => `${v}°`], ['sTilt', 'tilt', 0, v => `${v}°`], ['sRoll', 'roll', 0, v => `${v}°`],
+  ['sTextScale', 'textScale', 100, v => `${v}%`], ['sSubScale', 'subScale', 100, v => `${v}%`]];
+function showSignArrow(g) {   // 화살표 선택 칸·각도 슬라이더를 값에 맞춤
+  const d = signArrowDeg(g);
+  const preset = d == null ? '' : [...$('sArrow').options].find(o => o.value !== '' && o.value !== 'custom' && Number(o.value) === d)?.value;
+  $('sArrow').value = d == null ? '' : preset ?? 'custom';
+  $('sArrowDegRow').hidden = d == null;
+  $('sArrowDeg').value = d ?? 0; $('sArrowDegV').textContent = `${d ?? 0}°`;
+}
+// 판 색: 견본을 누르거나 직접 고르면 bg 에(예전 style 은 지움), 글씨 색은 직접 고르면 fg, [자동]이면 지움
+function showSignColors(g) {
+  $('sFrameRow').hidden = !g.kind || g.kind === 'wall';
+  for (const id of ['sBg', 'sFg', 'sFrame']) refreshColor(id);
+}
+let colorTimer = 0;
+function setSignColor({ bg, autoBg, fg, autoFg, frame, autoFrame }) {
+  const g = selSign; if (!g) return;
+  if (!colorTimer) mark(`안내판 「${g.text}」 색`);   // 색 고르기 창에서 끄는 동안은 한 항목으로 묶음
+  clearTimeout(colorTimer); colorTimer = setTimeout(() => { colorTimer = 0; }, 1500);
+  if (bg) { g.bg = bg; delete g.style; }
+  if (autoBg) { delete g.bg; delete g.style; }
+  if (fg) g.fg = fg;
+  if (autoFg) delete g.fg;
+  if (frame) g.frame = frame;
+  if (autoFrame) delete g.frame;
+  refreshNode(hereNode().id);
+  showSignColors(g); renderSigns();
+}
+// ── 색 고르기 창(하나를 같이 씀) ──
+// 색 단추(.cbtn)를 누르면 그 아래에 견본(진한 색·파스텔)·직접 고르기·기본값 단추가 뜬다. 단추마다 읽기·쓰기·기본값을 등록해 둔다
+const colorFields = {
+  lBg: { get: () => selLabel?.bg || '#b45309', auto: () => !selLabel?.bg, autoText: '주황', set: c => setLabelLook({ bg: c }), reset: () => setLabelLook({ bg: null }), resetLabel: '기본 색(주황)' },
+  lFg: { get: () => selLabel?.fg || labelAutoFg(selLabel || {}), auto: () => !selLabel?.fg, set: c => setLabelLook({ fg: c }), reset: () => setLabelLook({ fg: null }), resetLabel: '자동으로' },
+  lLine: { get: () => selLabel?.line || '#ffffff', auto: () => !selLabel?.line, autoText: '흰색', set: c => setLabelLook({ line: c }), reset: () => setLabelLook({ line: null }), resetLabel: '흰색(기본)' },
+  sBg: { get: () => selSign ? signBg(selSign) : SIGN_COLORS.green, auto: () => !selSign?.bg && !selSign?.style, autoText: '초록', set: c => setSignColor({ bg: c }), reset: () => setSignColor({ autoBg: true }), resetLabel: '기본 색(초록)' },
+  sFg: { get: () => selSign ? signFg(selSign) : '#ffffff', auto: () => !selSign?.fg, set: c => setSignColor({ fg: c }), reset: () => setSignColor({ autoFg: true }), resetLabel: '자동으로' },
+  sFrame: { get: () => selSign ? signFrame(selSign) : '#9ca3af', auto: () => !selSign?.frame, set: c => setSignColor({ frame: c }), reset: () => setSignColor({ autoFrame: true }), resetLabel: '자동으로' }
+};
+let cpopFor = '';
+function refreshColor(id) {
+  const d = colorFields[id], b = $(id), v = d.get();
+  b.querySelector('i').style.background = v;
+  b.querySelector('span').textContent = d.auto() ? (d.autoText || '자동') : v;
+  if (cpopFor === id && !$('cpop').hidden) paintColorPop();
+}
+function paintColorPop() {
+  const d = colorFields[cpopFor], cur = d.get().toLowerCase();
+  const sw = pal => Object.values(pal).map(c => {
+    const x = document.createElement('button');
+    x.type = 'button'; x.style.background = c; x.title = c;
+    x.setAttribute('aria-label', `색 ${c}`); x.setAttribute('aria-checked', String(c === cur));
+    x.onclick = () => d.set(c);   // set → 다시 그리기 → refreshColor → 이 창도 갱신
+    return x;
+  });
+  $('cpopDark').replaceChildren(...sw({ orange: '#b45309', ...SIGN_COLORS }));
+  $('cpopPastel').replaceChildren(...sw(SIGN_PASTELS));
+  if (document.activeElement !== $('cpopInput')) $('cpopInput').value = /^#[0-9a-f]{6}$/.test(cur) ? cur : '#ffffff';
+  $('cpopReset').textContent = d.resetLabel; $('cpopReset').disabled = d.auto();
+}
+function closeColorPop() {
+  if (cpopFor) $(cpopFor).setAttribute('aria-expanded', 'false');
+  $('cpop').hidden = true; cpopFor = '';
+}
+function openColorPop(id) {
+  if (cpopFor === id) { closeColorPop(); return; }
+  closeColorPop();
+  cpopFor = id;
+  const b = $(id), pop = $('cpop');
+  b.setAttribute('aria-expanded', 'true');
+  pop.hidden = false;
+  paintColorPop();
+  const r = b.getBoundingClientRect(), h = pop.offsetHeight, w = pop.offsetWidth;
+  pop.style.left = Math.max(8, Math.min(innerWidth - w - 8, r.left)) + 'px';
+  pop.style.top = (r.bottom + 6 + h > innerHeight - 8 ? Math.max(8, r.top - h - 6) : r.bottom + 6) + 'px';
+}
+for (const id of Object.keys(colorFields)) $(id).addEventListener('click', () => openColorPop(id));
+$('cpopInput').addEventListener('input', () => { if (cpopFor) colorFields[cpopFor].set($('cpopInput').value); });
+$('cpopReset').addEventListener('click', () => { if (cpopFor) colorFields[cpopFor].reset(); });
+$('cpopClose').addEventListener('click', closeColorPop);
+window.addEventListener('pointerdown', e => {   // 창 밖을 누르면 닫음
+  if (cpopFor && !e.target.closest('.cpop, .cbtn')) closeColorPop();
+  if (!$('eNodePop').hidden && !e.target.closest('#eNodePop, #eHere')) toggleNodePop(false);
+}, true);
+
+// ── 막대 옆 숫자 칸 ──
+// 편집 창의 모든 막대(range)에 숫자 칸을 붙인다. 숫자를 고치면 막대를 움직인 것과 똑같이 처리되고(input 이벤트),
+// 코드가 막대 값을 바꾸면(.value =) 숫자 칸도 따라온다. 새 막대를 넣으면 따로 할 일 없이 적용된다.
+for (const range of $('picker').querySelectorAll('input[type=range]')) {
+  const out = range.parentElement.querySelector('output');
+  const box = document.createElement('span'), num = document.createElement('input'), unit = document.createElement('span');
+  box.className = 'rnum';
+  num.type = 'number'; num.min = range.min; num.max = range.max; num.step = 1; num.inputMode = 'decimal';
+  num.setAttribute('aria-label', `${range.parentElement.firstChild.textContent.trim()} 숫자로 넣기`);
+  box.append(num, unit);
+  range.step = 1;   // 숫자로 넣은 값이 막대 눈금에 맞춰 바뀌지 않게
+  range.before(box);
+  if (out) out.hidden = true;
+  const sync = () => {
+    if (document.activeElement !== num) num.value = range.value;
+    unit.textContent = (out?.textContent || '').replace(/^[-\d.]+/, '');   // 단위(%, °)나 「자동」
+  };
+  const proto = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value');
+  Object.defineProperty(range, 'value', { configurable: true, get() { return proto.get.call(this); }, set(v) { proto.set.call(this, v); queueMicrotask(sync); } });
+  range.addEventListener('input', () => queueMicrotask(sync));
+  const apply = () => {
+    if (num.value === '' || isNaN(Number(num.value))) return;
+    const v = Math.min(Number(range.max), Math.max(Number(range.min), Math.round(Number(num.value))));
+    proto.set.call(range, v);
+    range.dispatchEvent(new Event('input', { bubbles: true }));
+    range.dispatchEvent(new Event('change', { bubbles: true }));
+  };
+  num.addEventListener('input', apply);
+  num.addEventListener('blur', sync);   // 범위를 벗어난 숫자는 칸을 떠날 때 맞춰진 값으로
+  num.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); num.blur(); } });
+  sync();
+}
+// ── 화살표 넣기 ──
+// 편집 창의 글 칸(글씨·설명·안내판 글·이름표·이름)에 커서를 두면 그 칸 아래에 화살표 줄이 따라온다.
+// 단추를 누르면 커서 자리(고른 글자가 있으면 그 자리)에 들어가고, 커서는 글 칸에 그대로 남는다.
+const arrowBar = document.createElement('div');
+arrowBar.className = 'arrowbar'; arrowBar.hidden = true;
+arrowBar.setAttribute('role', 'group'); arrowBar.setAttribute('aria-label', '화살표 넣기');
+arrowBar.innerHTML = '<small>넣기</small>' + [['←', '왼쪽'], ['→', '오른쪽'], ['↑', '위(앞으로)'], ['↓', '아래(뒤로)'], ['↖', '왼쪽 위'], ['↗', '오른쪽 위'], ['↙', '왼쪽 아래'], ['↘', '오른쪽 아래']]
+  .map(([c, n]) => `<button type="button" data-c="${c}" title="${n} 화살표" aria-label="${n} 화살표 넣기">${c}</button>`).join('');
+let arrowField = null;
+const isTextField = el => el?.matches?.('input:not([type]), input[type=text], textarea') && !el.readOnly;
+$('picker').addEventListener('focusin', e => {
+  if (!isTextField(e.target)) return;
+  arrowField = e.target;
+  e.target.after(arrowBar); arrowBar.hidden = false;
+});
+$('picker').addEventListener('focusout', e => {
+  if (e.relatedTarget && (arrowBar.contains(e.relatedTarget) || isTextField(e.relatedTarget))) return;
+  arrowBar.hidden = true;
+});
+arrowBar.addEventListener('pointerdown', e => e.preventDefault());   // 단추를 눌러도 글 칸의 커서가 남게
+arrowBar.addEventListener('click', e => {
+  const c = e.target.closest('button')?.dataset.c, f = arrowField;
+  e.preventDefault();   // 글 칸이 label 안에 있어 단추를 누르면 label 이 눌린 것으로 되지 않게
+  if (!c || !f) return;
+  const at = f.selectionStart ?? f.value.length, to = f.selectionEnd ?? at;
+  f.setRangeText(c, at, to, 'end');
+  f.focus();
+  f.dispatchEvent(new Event('input', { bubbles: true }));   // 평소 입력과 같게(화면 반영·되돌리기 기록)
+});
+
+// ── 탭 · 지금 지점 목록 · 도움말 ──
+let curTab = 'node';
+const store = { get: k => { try { return localStorage.getItem('tour360.' + k); } catch (_) { return null; } }, set: (k, v) => { try { localStorage.setItem('tour360.' + k, v); } catch (_) {} } };
+// 탭을 바꾼다. focusEl 을 주면 그 양식이 바로 보이게 편집 창을 스크롤
+function showTab(t, focusEl) {
+  curTab = t;
+  for (const b of $('etabs').children) { const on = b.dataset.tab === t; b.setAttribute('aria-selected', String(on)); b.tabIndex = on ? 0 : -1; }
+  for (const sec of $('picker').querySelectorAll('.etab')) sec.hidden = sec.dataset.tab !== t;
+  store.set('etab', t);
+  closeColorPop();
+  if (t === 'move') { try { mini?.autoSize(); } catch (_) {} }   // 숨어 있던 동안 크기가 0 이었을 수 있음
+  if (focusEl && !focusEl.hidden) requestAnimationFrame(() => focusEl.scrollIntoView({ block: 'start', behavior: 'smooth' }));
+  else $('picker').scrollTop = 0;
+}
+$('etabs').addEventListener('click', e => { const t = e.target.closest('button')?.dataset.tab; if (t) showTab(t); });
+$('etabs').addEventListener('keydown', e => {
+  if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+  const tabs = [...$('etabs').children], i = tabs.findIndex(b => b.dataset.tab === curTab);
+  const next = tabs[(i + (e.key === 'ArrowRight' ? 1 : tabs.length - 1)) % tabs.length];
+  showTab(next.dataset.tab); next.focus();
+});
+function toggleNodePop(on = $('eNodePop').hidden) {
+  $('eNodePop').hidden = !on;
+  $('eHere').setAttribute('aria-expanded', String(on));
+  if (on) requestAnimationFrame(() => $('eNodes').querySelector('[aria-current="true"]')?.scrollIntoView({ block: 'center' }));
+}
+$('eHere').addEventListener('click', () => toggleNodePop());
+function setHelp(on) { $('picker').classList.toggle('help', on); $('eHelp').setAttribute('aria-pressed', String(on)); store.set('help', on ? '1' : '0'); }
+$('eHelp').addEventListener('click', () => setHelp(!$('picker').classList.contains('help')));
+setHelp(store.get('help') === '1');
+if ([...$('etabs').children].some(b => b.dataset.tab === store.get('etab'))) showTab(store.get('etab'));
+// 형태·화살표 자리 버튼
+function showSignShape(g) {
+  const kind = g.kind || 'wall', pos = g.arrowPos || (kind === 'wall' ? 'side' : 'below');
+  for (const b of $('sKind').children) b.setAttribute('aria-pressed', String(b.dataset.v === kind));
+  for (const b of $('sArrowPos').children) b.setAttribute('aria-pressed', String(b.dataset.v === pos));
+  const hasArrow = signArrowDeg(g) != null;
+  $('sArrowPosRow').hidden = $('sArrowScaleRow').hidden = !hasArrow;
+}
+$('sKind').addEventListener('click', e => {
+  const v = e.target.closest('button')?.dataset.v, g = selSign;
+  if (!v || !g || (g.kind || 'wall') === v) return;
+  mark(`안내판 「${g.text}」 형태 → ${SIGN_KINDS[v]}`);
+  if (v === 'wall') delete g.kind; else g.kind = v;
+  delete g.arrowPos;   // 화살표 자리는 형태 기본값(벽: 옆, 서 있는 간판: 아래)으로
+  const d = SIGN_KIND_DEFAULTS[v];
+  for (const k of ['size', 'height', 'font', 'align', 'valign']) if (d[k] != null) g[k] = d[k];
+  if (d.bg && !g.bg && !g.style) g.bg = d.bg;   // 색을 아직 안 골랐으면 형태에 어울리는 색(나무·크림)
+  if (v !== 'wall') { delete g.turn; delete g.tilt; delete g.roll; }   // 서 있는 간판은 보통 정면을 봄
+  if (g.font == null) g.font = signFont(g);
+  refreshNode(hereNode().id); selectSign(g);
+});
+$('sArrowPos').addEventListener('click', e => {
+  const v = e.target.closest('button')?.dataset.v, g = selSign;
+  if (!v || !g) return;
+  const def = (g.kind || 'wall') === 'wall' ? 'side' : 'below';
+  if ((g.arrowPos || def) === v) return;
+  mark(`안내판 「${g.text}」 화살표 자리`);
+  if (v === def) delete g.arrowPos; else g.arrowPos = v;
+  refreshNode(hereNode().id); showSignShape(g); renderSigns();
+});
+$('sUpload').addEventListener('change', async () => {
+  const f = $('sUpload').files[0]; $('sUpload').value = '';
+  if (!f || !selSign) return;
+  $('sUpNow').textContent = '올리는 중…';
+  try {
+    const res = await fetch('__upload?name=' + encodeURIComponent(f.name), { method: 'POST', body: f });
+    const r = await res.json().catch(() => ({ ok: false, error: `서버 응답 ${res.status}` }));
+    if (!r.ok) throw new Error(r.error);
+    $('sImage').value = r.path; signInput({ target: $('sImage') });
+    $('sUpNow').textContent = `올림: ${r.path}`;
+  } catch (e) {
+    $('sUpNow').textContent = `못 올림: ${e.message} (tools/serve.sh 로 연 서버에서만 됩니다)`;
+  }
+});
+// 글씨 정렬: 가로(align)·세로(valign). 기본값(왼쪽·가운데)이면 파일에 안 남김
+function showSignAlign(g) {
+  for (const b of $('sAlign').children) b.setAttribute('aria-pressed', String(b.dataset.v === (g.align || 'left')));
+  for (const b of $('sSubAlign').children) b.setAttribute('aria-pressed', String(b.dataset.v === (g.subAlign || g.align || 'left')));
+  $('sTextPosReset').hidden = !g.textPos; $('sSubPosReset').hidden = !g.subPos;
+  $('sPosNow').textContent = g.textPos || g.subPos ? '' : '자동 배치';
+  for (const b of $('sVAlign').children) b.setAttribute('aria-pressed', String(b.dataset.v === (g.valign || 'middle')));
+}
+for (const [id, key, def, name] of [['sAlign', 'align', 'left', '가로 정렬'], ['sVAlign', 'valign', 'middle', '세로 정렬']])
+  $(id).addEventListener('click', e => {
+    const v = e.target.closest('button')?.dataset.v, g = selSign;
+    if (!v || !g || (g[key] || def) === v) return;
+    mark(`안내판 「${g.text}」 ${name}`);
+    if (v === def) delete g[key]; else g[key] = v;
+    if (key === 'align' && g.subAlign === v) delete g.subAlign;   // 작은 글씨가 따로 정한 정렬이 큰 글씨와 같아지면 따로 둘 필요 없음
+    refreshNode(hereNode().id); showSignAlign(g); renderSigns();
+  });
+$('sSubAlign').addEventListener('click', e => {
+  const v = e.target.closest('button')?.dataset.v, g = selSign;
+  if (!v || !g || (g.subAlign || g.align || 'left') === v) return;
+  mark(`안내판 「${g.text}」 작은 글씨 정렬`);
+  if (v === (g.align || 'left')) delete g.subAlign; else g.subAlign = v;
+  refreshNode(hereNode().id); showSignAlign(g); renderSigns();
+});
+for (const [id, key, name] of [['sTextPosReset', 'textPos', '큰 글씨'], ['sSubPosReset', 'subPos', '작은 글씨']])
+  $(id).addEventListener('click', () => {
+    const g = selSign; if (!g?.[key]) return;
+    mark(`안내판 「${g.text}」 ${name} 제자리로`);
+    delete g[key];
+    refreshNode(hereNode().id); showSignAlign(g); renderSigns();
+  });
+// 고른 안내판의 큰·작은 글씨를 끌면 그 글씨만 판 안에서 옮긴다(화면에서 움직인 만큼을 판 크기에 대한 %로, 판을 돌려 둔 만큼 되돌려 계산)
+function signTextDrag(e, el, here, g, key, part) {
+  const box = el.querySelector('.sign-in').getBoundingClientRect(), br = part.getBoundingClientRect();
+  const a = key === 'textPos' ? (g.align || 'left') : (g.subAlign || g.align || 'left');
+  // 시작 자리: 이미 옮긴 글씨면 그 값, 아니면 지금 보이는 자리(정렬 기준점: 왼쪽·가운데·오른쪽, 위)
+  const ax = a === 'left' ? br.left : a === 'right' ? br.right : br.left + br.width / 2;
+  const start = g[key] || { x: (ax - box.left) / box.width * 100, y: (br.top - box.top) / box.height * 100 };
+  const roll = (g.roll || 0) * RAD, x0 = e.clientX, y0 = e.clientY;
+  const clamp = v => Math.max(-20, Math.min(120, Math.round(v * 10) / 10));
+  let moved = false, pos = start;
+  const onMove = ev => {
+    let dx = ev.clientX - x0, dy = ev.clientY - y0;
+    if (!moved && Math.hypot(dx, dy) < 3) return;
+    if (!moved) { moved = true; mark(`안내판 「${g.text}」 ${key === 'textPos' ? '큰' : '작은'} 글씨 옮기기`); }
+    [dx, dy] = [dx * Math.cos(roll) + dy * Math.sin(roll), -dx * Math.sin(roll) + dy * Math.cos(roll)];   // 판을 돌린 만큼 되돌림
+    pos = { x: clamp(start.x + dx / Math.max(20, box.width) * 100), y: clamp(start.y + dy / Math.max(20, box.height) * 100) };   // 화면에 보이는 판 크기 기준 %
+    part.classList.add('free');
+    Object.assign(part.style, { position: 'absolute', left: pos.x + '%', top: pos.y + '%', transform: `translateX(${a === 'left' ? 0 : a === 'right' ? -100 : -50}%)`, alignSelf: '' });
+    setStatus(`${key === 'textPos' ? '큰' : '작은'} 글씨 자리: ${pos.x}%, ${pos.y}%`);
+  };
+  const onUp = () => {
+    window.removeEventListener('pointermove', onMove); window.removeEventListener('pointerup', onUp); window.removeEventListener('pointercancel', onUp);
+    if (!moved) return;
+    g[key] = pos;
+    refreshNode(here.id); selectSign(g);
+  };
+  window.addEventListener('pointermove', onMove); window.addEventListener('pointerup', onUp); window.addEventListener('pointercancel', onUp);
+}
+function selectSign(g) {
+  const changed = g !== selSign;
+  if (changed) closeColorPop();
+  selSign = g || null; signPlacing = null;
+  $('eSignForm').hidden = !g;
+  if (g) {
+    $('sText').value = g.text || ''; $('sSub').value = g.sub || '';
+    showSignColors(g); showSignAlign(g); showSignShape(g); $('sImage').value = g.image || ''; $('sUpNow').textContent = '';
+    showSignArrow(g);
+    for (const [id, k, def, fmt] of SIGN_RANGES) { $(id).value = g[k] ?? def; $(id + 'V').textContent = fmt(g[k] ?? def); }
+    $('sFont').value = signFont(g); $('sFontV').textContent = `${signFont(g)}px`;
+    if (changed || curTab !== 'sign') showTab('sign', $('eSignForm'));   // 사진에서 골라도 안내판 탭의 양식이 바로 보이게
+  }
+  renderSigns();
+}
+let signTimer = 0;
+function signInput(e) {
+  const g = selSign; if (!g) return;
+  if (!signTimer) mark(`안내판 「${g.text}」`);
+  clearTimeout(signTimer); signTimer = setTimeout(() => { signTimer = 0; }, 1500);
+  g.text = $('sText').value.trim() || '안내';
+  g.sub = $('sSub').value.trim(); g.image = $('sImage').value.trim();
+  // 화살표: 방향 이름을 고르면 그 각도, 각도 슬라이더를 움직이면 그 각도(자유), 「없음」이면 지움. 저장은 늘 arrowDeg
+  delete g.arrow;
+  if (e?.target?.id === 'sArrow') { if ($('sArrow').value === '') delete g.arrowDeg; else g.arrowDeg = Number($('sArrow').value); }
+  else if (e?.target?.id === 'sArrowDeg') g.arrowDeg = Number($('sArrowDeg').value);
+  showSignArrow(g); showSignShape(g);
+  // 너비를 바꿔도 글씨는 그대로이도록, 예전 판(font 없음)은 지금 글씨 크기를 먼저 고정해 둔다
+  if (g.font == null) g.font = signFont(g);
+  for (const [id, k, def, fmt] of SIGN_RANGES) { g[k] = Number($(id).value); $(id + 'V').textContent = fmt(g[k]); }
+  if (e?.target?.id === 'sFont') g.font = Number($('sFont').value);
+  $('sFont').value = g.font; $('sFontV').textContent = `${g.font}px`;
+  for (const [k, def] of [['height', 0], ['sub', ''], ['image', ''], ['arrowScale', 100], ['alpha', 100], ['turn', 0], ['tilt', 0], ['roll', 0], ['textScale', 100], ['subScale', 100]]) if (g[k] === def) delete g[k];
+  refreshNode(hereNode().id);
+  renderSigns();
+}
+for (const id of ['sText', 'sSub', 'sImage', 'sArrow', 'sArrowDeg', 'sAlpha', 'sSize', 'sHeight', 'sFont', 'sTurn', 'sTilt', 'sRoll', 'sTextScale', 'sSubScale']) $(id).addEventListener('input', signInput);
+$('eSignNew').addEventListener('click', () => { const on = signPlacing === 'new'; selectSign(null); placing = null; signPlacing = on ? null : 'new'; renderLabels(); renderSigns(); });
+$('sMove').addEventListener('click', () => { signPlacing = signPlacing === selSign ? null : selSign; renderSigns(); });
+$('sFace').addEventListener('click', () => {
+  const g = selSign; if (!g) return;
+  mark(`안내판 「${g.text}」 정면으로`);
+  delete g.turn; delete g.tilt; delete g.roll;
+  refreshNode(hereNode().id); selectSign(g);
+});
+// 다른 장면으로 복사: 안내판을 통째로(자리 빼고) 기억해 두었다가, 다른 장면 ④의 [붙여넣기] → 사진에서 자리 누르기.
+// 이 브라우저에 남겨 두므로 새로 고치거나 초등·중등 편집 화면을 바꿔도 붙일 수 있다(저장이 안 되는 환경이면 이 화면에서만)
+let signClip = null;
+try { signClip = JSON.parse(localStorage.getItem('tour360.signClip') || 'null'); } catch (_) {}
+$('sClip').addEventListener('click', () => {
+  const g = selSign; if (!g) return;
+  signClip = JSON.parse(JSON.stringify(g));
+  delete signClip.yaw; delete signClip.pitch;
+  try { localStorage.setItem('tour360.signClip', JSON.stringify(signClip)); } catch (_) {}
+  renderSigns();
+  setStatus(`「${g.text}」 안내판을 복사했습니다 · 다른 장면의 ④에서 [붙여넣기]`);
+});
+$('eSignPaste').addEventListener('click', () => {
+  if (!signClip) return;
+  const on = signPlacing === 'paste';
+  selectSign(null); placing = null; signPlacing = on ? null : 'paste';
+  renderLabels(); renderSigns();
+});
+$('sCopy').addEventListener('click', () => {
+  const g = selSign, here = hereNode(); if (!g) return;
+  mark(`안내판 「${g.text}」 복사`);
+  const c = { ...JSON.parse(JSON.stringify(g)), yaw: Math.round((g.yaw + 8) * 10) / 10 };   // 옆에 하나 더 만들어 끌어다 쓰게
+  here.signs.push(c);
+  refreshNode(here.id); selectSign(c);
+});
+$('sDelete').addEventListener('click', () => {
+  const g = selSign, here = hereNode(); if (!g) return;
+  mark(`안내판 「${g.text}」 지우기`);
+  here.signs = here.signs.filter(x => x !== g);
+  if (!here.signs.length) delete here.signs;
+  selectSign(null); refreshNode(here.id);
+  setStatus(`「${g.text}」 안내판을 지움 · ← 로 되돌리기`);
+});
+
+// ── 투어 설정 ──
+function renderTour() {
+  $('tTitle').value = tour.title || ''; $('tSubtitle').value = tour.subtitle || '';
+  $('tStart').replaceChildren(...tour.nodes.map(n => new Option(`${n.id} ${n.name}`, n.id)));
+  $('tStart').value = tour.start || tour.nodes[0].id;
+}
+let tourTimer = 0;
+const tourInput = () => { if (!tourTimer) mark('투어 제목'); clearTimeout(tourTimer); tourTimer = setTimeout(() => { tourTimer = 0; }, 1500);
+  tour.title = $('tTitle').value.trim(); tour.subtitle = $('tSubtitle').value.trim(); $('tourTitle').textContent = tour.title; document.title = `${tour.title} · 360 투어`; };
+$('tTitle').addEventListener('input', tourInput); $('tSubtitle').addEventListener('input', tourInput);
+$('tStart').addEventListener('change', () => { mark('처음 여는 지점'); tour.start = $('tStart').value; });
+
+function renderEditor() {
+  if (!editing || !hereNode()) return;
+  renderNodes(); renderNode(); renderLinks(); showPreview(); renderFrom(); renderLabels(); renderSigns(); renderTour();
+}
+
+// ── 저장 ──
+async function save() {
+  if (!changes || $('eSave').disabled) return;
+  $('eSave').disabled = true;
+  setStatus('저장하는 중…');
+  try {
+    const res = await fetch('__save', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ file: tourFile, tour, sync: $('eSync').checked }) });
+    const r = await res.json().catch(() => ({ ok: false, error: `서버 응답 ${res.status}` }));
+    if (!r.ok) throw new Error(r.error);
+    changes = 0;
+    setStatus(`저장함 → ${r.files.join(', ') || '(바뀐 파일 없음)'}`);
+  } catch (e) {
+    if (String(e.message).startsWith('서버 응답') || e instanceof TypeError) {
+      // 저장 서버 없이 열었으면(예: python -m http.server) 고친 설정 파일을 내려받게 한다
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(new Blob([JSON.stringify(tour, null, 2)], { type: 'application/json' }));
+      a.download = tourFile; a.click();
+      setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+      setStatus(`저장 서버가 아니라 ${tourFile}을 내려받았습니다. tools/serve.sh 로 열면 바로 저장됩니다`);
+    } else setStatus(`저장 실패: ${e.message}`);
+    $('eSave').disabled = false;
+  }
+}
+$('eSave').addEventListener('click', save);
+window.addEventListener('beforeunload', e => { if (changes) e.preventDefault(); });
+document.addEventListener('keydown', e => {
+  if (editing && e.key === 'Escape' && (cpopFor || !$('eNodePop').hidden)) { closeColorPop(); toggleNodePop(false); return; }
+  if (editing && e.key === 'Escape' && (placing || signPlacing)) { placing = null; signPlacing = null; renderLabels(); renderSigns(); return; }
+  if (!editing || !(e.metaKey || e.ctrlKey)) return;
+  const typing = /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName);
+  if (e.key === 's') { e.preventDefault(); save(); }
+  else if (e.key.toLowerCase() === 'z' && !typing) { e.preventDefault(); $(e.shiftKey ? 'eRedo' : 'eUndo').click(); }
+  else if (e.key === 'y' && !typing) { e.preventDefault(); $('eRedo').click(); }
+});
+$('modeBtn').addEventListener('click', () => {
+  editing = !editing;
+  $('modeBtn').setAttribute('aria-pressed', String(editing));
+  $('picker').hidden = !editing;
+  document.documentElement.classList.toggle('editing', editing);
+  if (!editing) { $('sgiz').hidden = true; closeColorPop(); toggleNodePop(false); }
+  if (editing) $('detail').hidden = true;
+  pickTo = ''; highlight(null);
+  renderEditor();
+  setGallery();
+});
+vt.addEventListener('node-changed', ({ node }) => { closeColorPop(); toggleNodePop(false); curId = node.id; pickTo = ''; pickMode = 'target'; selLabel = null; placing = null; $('eLabelForm').hidden = true; selSign = null; signPlacing = null; $('eSignForm').hidden = true; $('ePrevBox').hidden = true; miniFor = ''; renderEditor(); });
+viewer.addEventListener('click', ({ data }) => {
+  if (!editing || data.rightclick) return;
+  if (data.marker && !placing && !signPlacing && !(pickTo && data.marker.config.data?.goto)) return;   // 글씨를 누른 것 (화살표·원은 자리 찍기로 받음)
+  const yaw = deg(data.yaw), pitch = deg(data.pitch);
+  $('coords').textContent = `yaw ${yaw}°  /  pitch ${pitch}°`;
+  $('snippet').value = `글씨:  { "text": "안내 문구", "yaw": ${yaw}, "pitch": ${pitch} }`;
+  if (signPlacing) {   // ④ 안내판 붙이기·옮기기
+    const here = hereNode();
+    let g = signPlacing;
+    mark(g === 'new' ? '새 안내판' : g === 'paste' ? `안내판 「${signClip.text}」 붙여넣기` : `안내판 「${g.text}」 위치`);
+    if (g === 'new') { g = { text: '안내', yaw, pitch, size: 320 }; (here.signs ||= []).push(g); }
+    else if (g === 'paste') { g = { ...JSON.parse(JSON.stringify(signClip)), yaw, pitch }; (here.signs ||= []).push(g); }
+    else { g.yaw = yaw; g.pitch = pitch; }
+    signPlacing = null;
+    refreshNode(here.id);
+    selectSign(g);
+    if (g.text === '안내') $('sText').select();
+    return;
+  }
+  if (placing) {
+    const here = hereNode();
+    let m = placing;
+    mark(m === 'new' ? '새 글씨' : placePart === 'box' ? `글씨 「${m.text}」 따로 빼기` : `글씨 「${m.text}」 위치`);
+    if (m === 'new') { m = { text: '새 안내', yaw, pitch }; (here.labels ||= []).push(m); }
+    else if (placePart === 'box') m.box = { yaw, pitch };
+    else { m.yaw = yaw; m.pitch = pitch; }
+    placing = null;
+    refreshNode(here.id);
+    selectLabel(m);
+    if (m.text === '새 안내') $('lText').select();
+    return;
+  }
+  if (!pickTo) return;
+  if (pickMode === 'target' && pitch > MAX_UP) { setStatus('다음 사진을 찍은 자리(바닥·계단)를 눌러 주세요. 천장·하늘은 안 됩니다'); return; }
+  if (pickMode === 'arrow' && pitch > -8) { setStatus('출발 화살표는 발 앞 바닥(더 아래)을 눌러 주세요'); return; }
+  const here = hereNode().id, l = findLink(here, pickTo);
+  if (!l) return;
+  if (pickMode === 'arrow') {
+    mark(`${nameOf(pickTo)} 출발 화살표 자리`);
+    l.arrow = { yaw, pitch };
+    if (!l.target) { l.yaw = yaw; delete l.check; }   // 도착 자리가 아직 없으면 화살표 방향도 이쪽으로
+  } else {
+    mark(`${nameOf(pickTo)} 도착 자리`);
+    l.yaw = yaw; l.target = { yaw, pitch }; delete l.check;
+  }
+  refreshNode(here);
+  renderLinks(); showPreview();
+  highlight(pickTo);
+});
+// ── 원·출발 화살표 끌어서 옮기기 ──
+// 편집 중에 바닥 원(.spot)이나 바닥 화살표(.farrow)를 누른 채 끌면 그 자리로 옮긴다. 뷰어의 화면 돌리기보다 먼저 받아서(capture) 막는다.
+// 끄는 동안은 마커 위치만 옮겨 가볍게 보여 주고, 놓을 때 값에 넣고 다시 그린다. 안 끌고 그냥 놓으면 원래 누른 동작(이동·자리 찍기).
+$('viewer').addEventListener('pointerdown', e => {
+  if (!editing || e.button !== 0) return;
+  const el = e.target.closest('.spot, .farrow');
+  if (!el) return;
+  const here = hereNode(), to = el.dataset.to, l = findLink(here?.id, to);
+  if (!l) return;
+  const kind = el.classList.contains('spot') ? 'target' : 'arrow';
+  e.stopPropagation(); e.preventDefault();
+  const rect = $('viewer').getBoundingClientRect();
+  const x0 = e.clientX, y0 = e.clientY;
+  let moved = false, last = null;
+  const onMove = ev => {
+    if (!moved && Math.hypot(ev.clientX - x0, ev.clientY - y0) < 4) return;
+    const sph = viewer.dataHelper.viewerCoordsToSphericalCoords({ x: ev.clientX - rect.left, y: ev.clientY - rect.top });
+    const yaw = deg(sph.yaw), pitch = deg(sph.pitch);
+    if (kind === 'arrow' ? pitch > -3 : pitch > MAX_UP) return;   // 출발 화살표는 바닥만, 도착 자리는 올라가는 계단까지(하늘·천장은 안 됨)
+    if (!moved) { moved = true; el.classList.add('dragging'); mark(`${nameOf(to)} ${kind === 'target' ? '도착 자리' : '출발 화살표'} 끌기`); pickTo = to; highlight(to); if (curTab !== 'move') showTab('move', $('eLinks')); }
+    last = { yaw, pitch };
+    const ids = kind === 'target' ? [[`${here.id}-spot-${to}`, pitch], [`${here.id}-pin-${to}`, Math.max(pitch, -32)]] : [[`${here.id}-arrow-${to}`, pitch]];
+    for (const [id, p] of ids) try { markers.updateMarker({ id, position: { yaw: yaw + 'deg', pitch: p + 'deg' } }); } catch (_) {}
+  };
+  const onUp = () => {
+    window.removeEventListener('pointermove', onMove); window.removeEventListener('pointerup', onUp); window.removeEventListener('pointercancel', onUp);
+    el.classList.remove('dragging');
+    if (!moved) {   // 그냥 누른 것: 이동(자리 찍는 중이 아닐 때)
+      if (!pickTo && !placing) goLink(to);   // 방문자 화면과 같게: 목적지가 여럿이면 고르는 창
+      return;
+    }
+    if (!last) return;
+    if (kind === 'target') { l.yaw = last.yaw; l.target = last; delete l.check; }
+    else l.arrow = last;
+    refreshNode(here.id); renderLinks(); showPreview(); highlight(to);
+    setStatus(`${nameOf(to)} ${kind === 'target' ? '도착 자리' : '출발 화살표'}를 옮겼습니다`);
+  };
+  window.addEventListener('pointermove', onMove); window.addEventListener('pointerup', onUp); window.addEventListener('pointercancel', onUp);
+}, true);
+// 글씨의 주황 점(가리키는 곳)과 따로 뺀 글씨(.mk.callout)도 끌어서 옮긴다. 끄는 동안 선도 따라 그리고, 안 끌고 놓으면 그 글씨를 고른다
+$('viewer').addEventListener('pointerdown', e => {
+  if (!editing || e.button !== 0 || placing) return;
+  const dotEl = e.target.closest('.mk .dot'), el = dotEl ? dotEl.closest('.mk') : e.target.closest('.mk.callout');
+  if (!el) return;
+  const here = hereNode(), i = +el.dataset.label, m = here?.labels?.[i];
+  const part = dotEl ? 'dot' : 'box';
+  if (!m || (part === 'box' && !m.box)) return;
+  e.stopPropagation(); e.preventDefault();
+  const rect = $('viewer').getBoundingClientRect();
+  const x0 = e.clientX, y0 = e.clientY;
+  let moved = false, last = null;
+  const onMove = ev => {
+    if (!moved && Math.hypot(ev.clientX - x0, ev.clientY - y0) < 4) return;
+    const sph = viewer.dataHelper.viewerCoordsToSphericalCoords({ x: ev.clientX - rect.left, y: ev.clientY - rect.top });
+    if (!moved) { moved = true; el.classList.add('dragging'); mark(`글씨 「${m.text}」 ${part === 'dot' ? '점' : '글씨 자리'} 끌기`); }
+    last = { yaw: deg(sph.yaw), pitch: deg(sph.pitch) };
+    const pos = { yaw: last.yaw + 'deg', pitch: last.pitch + 'deg' };
+    try {
+      if (part === 'box') markers.updateMarker({ id: `${here.id}-m${i}`, position: pos });
+      else markers.updateMarker({ id: m.box ? `${here.id}-m${i}-dot` : `${here.id}-m${i}`, position: pos });
+      if (m.box) markers.updateMarker({ id: `${here.id}-m${i}-line`, polyline: part === 'box' ? leaderPath(m, last) : leaderPath(last, m.box) });
+    } catch (_) {}
+  };
+  const onUp = () => {
+    window.removeEventListener('pointermove', onMove); window.removeEventListener('pointerup', onUp); window.removeEventListener('pointercancel', onUp);
+    el.classList.remove('dragging');
+    if (!moved) { selectLabel(m); return; }
+    if (!last) return;
+    if (part === 'box') m.box = last; else { m.yaw = last.yaw; m.pitch = last.pitch; }
+    refreshNode(here.id); selectLabel(m);
+    setStatus(`「${m.text}」 ${part === 'dot' ? '점을' : '글씨 자리를'} 옮겼습니다`);
+  };
+  window.addEventListener('pointermove', onMove); window.addEventListener('pointerup', onUp); window.addEventListener('pointercancel', onUp);
+}, true);
+// 화면 손잡이로 안내판 조절: 화면에서 움직인 만큼(픽셀) 값을 바꾼다. 판이 3D 로 돌아가 있어도 화면 기준이라 손에 익기 쉽다
+//  size ↘: 판 가운데에서 멀어진 비율만큼 크기 / turn ↔: 좌우로 끈 만큼 벽 방향 / tilt ↕: 위아래로 끈 만큼 기울기
+//  roll ⟳: 판 가운데를 중심으로 돈 각도 / arrow: 화살표 가운데를 중심으로 가리키는 각도(5° 단위, Shift 는 1°)
+function signGizmo(e, el, here, i, g, h) {
+  const id = `${here.id}-s${i}`, box = el.getBoundingClientRect();
+  const cx = box.left + box.width / 2, cy = box.top + box.height / 2;
+  const arEl = el.querySelector('.ar'), ab = arEl?.getBoundingClientRect();
+  const ax = ab ? ab.left + ab.width / 2 : cx, ay = ab ? ab.top + ab.height / 2 : cy;
+  const x0 = e.clientX, y0 = e.clientY, start = { ...g };
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  const names = { size: '판 크기', font: '글씨 크기', turn: '벽 방향', tilt: '기울기', roll: '돌리기', arrow: '화살표 방향' };
+  const w0 = g.size || 320, h0 = g.height || el.offsetHeight, f0 = signFont(g);
+  if (g.font == null) g.font = f0;   // 판 크기를 바꿔도 글씨는 그대로
+  let moved = false;
+  el.classList.add('dragging');
+  const onMove = ev => {
+    const dx = ev.clientX - x0, dy = ev.clientY - y0;
+    if (!moved && Math.hypot(dx, dy) < 3) return;
+    if (!moved) { moved = true; mark(`안내판 「${g.text}」 ${names[h]}`); }
+    if (h === 'size') {   // 판 가운데에서 가로·세로로 멀어진 비율만큼 너비·높이(Shift: 같은 비율)
+      let kx = Math.abs(ev.clientX - cx) / Math.max(8, Math.abs(x0 - cx)), ky = Math.abs(ev.clientY - cy) / Math.max(8, Math.abs(y0 - cy));
+      if (ev.shiftKey) kx = ky = Math.hypot(ev.clientX - cx, ev.clientY - cy) / Math.max(10, Math.hypot(x0 - cx, y0 - cy));
+      g.size = Math.round(clamp(w0 * kx, 100, 1400) / 10) * 10;
+      g.height = Math.round(clamp(h0 * ky, 30, 900) / 5) * 5;
+      el.style.width = g.size + 'px'; el.style.height = g.height + 'px';
+    } else if (h === 'font') {   // 오른쪽·위로 끌면 크게
+      g.font = Math.round(clamp(f0 * (1 + (dx - dy) / 200), 8, 200));
+      el.style.fontSize = g.font + 'px';
+    } else if (h === 'turn') g.turn = Math.round(clamp((start.turn || 0) + dx * 0.35, -85, 85));
+    else if (h === 'tilt') g.tilt = Math.round(clamp((start.tilt || 0) - dy * 0.35, -70, 70));
+    else if (h === 'roll') {
+      const a = Math.atan2(ev.clientY - cy, ev.clientX - cx) - Math.atan2(y0 - cy, x0 - cx);
+      g.roll = Math.round(clamp((start.roll || 0) + a / RAD, -90, 90));
+    } else if (h === 'arrow') {
+      const step = ev.shiftKey ? 1 : 5;
+      let d = Math.atan2(ev.clientX - ax, -(ev.clientY - ay)) / RAD - (g.roll || 0);   // 판을 돌려 둔 만큼 빼서 판 기준 각도로
+      d = ((Math.round(d / step) * step + 540) % 360) - 180;
+      g.arrowDeg = d; delete g.arrow;
+      if (arEl) arEl.style.transform = `rotate(${d}deg)`;
+    }
+    if (h === 'turn' || h === 'tilt' || h === 'roll')
+      try { markers.updateMarker({ id, rotation: { yaw: (g.turn || 0) + 'deg', pitch: (g.tilt || 0) + 'deg', roll: (g.roll || 0) + 'deg' } }); } catch (_) {}
+    setStatus(`${names[h]}: ${h === 'size' ? `${g.size} × ${g.height}` : h === 'font' ? g.font + 'px' : h === 'arrow' ? g.arrowDeg + '°' : g[h] + '°'}`);
+  };
+  const onUp = () => {
+    window.removeEventListener('pointermove', onMove); window.removeEventListener('pointerup', onUp); window.removeEventListener('pointercancel', onUp);
+    el.classList.remove('dragging');
+    if (!moved) return;
+    for (const k of ['turn', 'tilt', 'roll']) if (!g[k]) delete g[k];
+    refreshNode(here.id); selectSign(g);   // 오른쪽·왼쪽 화살표 자리 바뀜 등을 다시 그리고 편집 창 값도 맞춤
+  };
+  window.addEventListener('pointermove', onMove); window.addEventListener('pointerup', onUp); window.addEventListener('pointercancel', onUp);
+}
+// 화면 손잡이 자리: 고른 안내판이 있으면 매 프레임 판의 화면 테두리에 맞춰 둔다(화면을 돌리거나 판을 바꿔도 따라감)
+let gizRaf = 0;
+function selSignEl() {
+  const here = hereNode(), i = (here?.signs || []).indexOf(selSign);
+  const el = i >= 0 && signEls.get(`${here.id}-s${i}`);
+  return el && el.isConnected ? { el, i, here } : null;
+}
+function placeGizmo() {
+  gizRaf = 0;
+  const giz = $('sgiz'), s = editing && selSign && !signPlacing && !moving && selSignEl();
+  const r = s && s.el.firstElementChild.getBoundingClientRect();
+  const vis = r && r.width > 2 && r.height > 2 && getComputedStyle(s.el.parentElement).visibility !== 'hidden' && s.el.parentElement.style.display !== 'none';
+  giz.hidden = !vis;
+  if (vis) {
+    const f = giz.querySelector('.frame');
+    Object.assign(f.style, { left: r.left + 'px', top: r.top + 'px', width: r.width + 'px', height: r.height + 'px' });
+    const at = (h, x, y) => { const b = giz.querySelector(`[data-h="${h}"]`); b.style.left = x + 'px'; b.style.top = y + 'px'; };
+    at('size', r.right, r.bottom); at('font', r.left, r.bottom); at('turn', r.right + 4, r.top + r.height / 2); at('tilt', r.left + r.width / 2, r.bottom + 4); at('roll', r.left + r.width / 2, r.top - 22);
+    const ar = s.el.querySelector('.ar'), ab = ar?.getBoundingClientRect(), ab2 = giz.querySelector('[data-h="arrow"]');
+    ab2.hidden = !ab;
+    if (ab) { const d = Math.max(32, Math.min(90, Math.max(ab.width, ab.height) + 12)); Object.assign(ab2.style, { left: ab.left + ab.width / 2 + 'px', top: ab.top + ab.height / 2 + 'px', width: d + 'px', height: d + 'px', margin: `${-d / 2}px 0 0 ${-d / 2}px` }); }
+  }
+  if (editing && selSign) gizRaf = requestAnimationFrame(placeGizmo);
+}
+const startGizmo = () => { if (!gizRaf) gizRaf = requestAnimationFrame(placeGizmo); };
+$('sgiz').addEventListener('pointerdown', e => {
+  const h = e.target.closest('button')?.dataset.h, s = selSignEl();
+  if (!h || !s || e.button !== 0) return;
+  e.preventDefault();
+  signGizmo(e, s.el, s.here, s.i, selSign, h);
+});
+// 안내판도 끌어서 옮긴다. 안 끌고 놓으면 그 안내판을 고른다
+$('viewer').addEventListener('pointerdown', e => {
+  if (!editing || e.button !== 0 || placing || signPlacing) return;
+  const el = e.target.closest('.sign');
+  if (!el) return;
+  const here = hereNode(), i = +el.dataset.sign, g = here?.signs?.[i];
+  if (!g) return;
+  e.stopPropagation(); e.preventDefault();
+  // 고른 판의 글씨를 잡았으면 그 글씨만 옮김, 판 바탕을 잡았으면 판째 옮김
+  const part = g === selSign && e.target.closest('.sign-in b, .sign-in small');
+  if (part) { signTextDrag(e, el, here, g, part.tagName === 'B' ? 'textPos' : 'subPos', part); return; }
+  const rect = $('viewer').getBoundingClientRect();
+  const x0 = e.clientX, y0 = e.clientY;
+  let moved = false, last = null;
+  const onMove = ev => {
+    if (!moved && Math.hypot(ev.clientX - x0, ev.clientY - y0) < 4) return;
+    const sph = viewer.dataHelper.viewerCoordsToSphericalCoords({ x: ev.clientX - rect.left, y: ev.clientY - rect.top });
+    if (!moved) { moved = true; el.classList.add('dragging'); mark(`안내판 「${g.text}」 끌기`); }
+    last = { yaw: deg(sph.yaw), pitch: deg(sph.pitch) };
+    try { markers.updateMarker({ id: `${here.id}-s${i}`, position: { yaw: last.yaw + 'deg', pitch: last.pitch + 'deg' } }); } catch (_) {}
+  };
+  const onUp = () => {
+    window.removeEventListener('pointermove', onMove); window.removeEventListener('pointerup', onUp); window.removeEventListener('pointercancel', onUp);
+    el.classList.remove('dragging');
+    if (!moved) { selectSign(g); return; }
+    if (!last) return;
+    g.yaw = last.yaw; g.pitch = last.pitch;
+    refreshNode(here.id); selectSign(g);
+    setStatus(`「${g.text}」 안내판을 옮겼습니다`);
+  };
+  window.addEventListener('pointermove', onMove); window.addEventListener('pointerup', onUp); window.addEventListener('pointercancel', onUp);
+}, true);
+// 뷰어는 mouse/touch 이벤트로 화면을 돌리므로, 원·화살표·따로 뺀 글씨 위에서 시작한 것은 뷰어에 안 보이게 막는다
+for (const t of ['mousedown', 'touchstart']) $('viewer').addEventListener(t, e => {
+  if (editing && e.target.closest?.(placing || signPlacing ? '.spot, .farrow' : '.spot, .farrow, .mk.callout, .mk .dot, .sign')) e.stopPropagation();
+}, true);
+if (canEdit && params.has('edit')) $('modeBtn').click();
+window.tour360 = { tour, vt, viewer, findNode, refreshNode, get mini() { return mini; } };   // 브라우저 콘솔에서 살펴볼 때
+
+// 키오스크: 좌표 찍기 대신 '처음으로' 버튼. 한동안 아무도 안 만지면
+// 첫 지점으로 돌아가 천천히 돌면서 안내 문구를 띄운다(다음 학생을 위해).
+if (kiosk) {
+  const k = tour.kiosk || {};
+  const auto = viewer.getPlugin(AutorotatePlugin);
+  const gallery = viewer.getPlugin(GalleryPlugin);
+  const startId = tour.start || nodes[0].id;
+  let asleep = false, timer, extended = false;
+
+  document.documentElement.classList.add('kiosk');
+  document.addEventListener('contextmenu', e => e.preventDefault());
+  $('modeBtn').hidden = true;
+  $('homeBtn').hidden = false;
+  $('attract').textContent = k.message || tour.subtitle || '화면을 눌러 둘러보세요';
+
+  const goHome = () => {
+    voice.stop();
+    $('detail').hidden = true;
+    if ($('info').open) $('info').close();   // 팝업(영상 포함) 닫기
+    autoStopped = true; setAutoHint(false);
+    gallery.hide();
+    const src = tour.nodes.find(n => n.id === startId);
+    const face = () => { viewer.rotate({ yaw: (src?.startYaw ?? 0) + 'deg', pitch: 0 }); viewer.zoom(VIEW.zoom); };
+    return vt.setCurrentNode(startId).then(face, face);
+  };
+  const sleep = () => {
+    // 팝업(영상 등)을 보는 중이면 대기 시간을 한 번 더(총 3배) 준다
+    if ($('info').open && !extended) { extended = true; timer = setTimeout(sleep, (k.idleSeconds ?? 90) * 2000); return; }
+    asleep = true;
+    $('attract').hidden = false;
+    goHome().then(() => { if (asleep) auto.start(); });
+  };
+  const wake = () => {
+    clearTimeout(timer);
+    extended = false;
+    timer = setTimeout(sleep, (k.idleSeconds ?? 90) * 1000);
+    if (!asleep) return;
+    asleep = false;
+    auto.stop();
+    $('attract').hidden = true;
+  };
+  for (const t of ['pointerdown', 'keydown', 'wheel']) window.addEventListener(t, wake, { capture: true, passive: true });
+  $('homeBtn').addEventListener('click', goHome);
+
+  // 도착 음성 안내(키오스크만): 지점의 "audio" 파일 또는 "say" 글, 없으면 "○○입니다."
+  // 브라우저는 화면을 한 번 누르기 전에는 소리를 못 내므로, 첫 터치 뒤부터 안내한다. "kiosk": { "voice": false } 로 끔.
+  if (k.voice !== false) {
+    let touched = false;
+    window.addEventListener('pointerdown', () => { touched = true; }, { capture: true, passive: true, once: true });
+    vt.addEventListener('node-changed', ({ node }) => {
+      const src = byId[node.id];
+      if (!touched || asleep || src?.pass) return;   // 대기 중·자동으로 지나가는 지점은 말하지 않음
+      voice.play({ text: src?.say || `${node.name}입니다.`, audio: src?.audio });
+    });
+  }
+  viewer.addEventListener('panorama-loaded', sleep, { once: true });
+}
+</script>
+</body>
+</html>
