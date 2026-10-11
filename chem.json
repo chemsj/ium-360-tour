@@ -1,0 +1,33 @@
+{
+  "title": "화학실 둘러보기",
+  "subtitle": "화면을 눌러 화학실을 둘러보세요",
+  "start": "01",
+  "kiosk": { "idleSeconds": 60 },
+  "nodes": [
+    {
+      "id": "01",
+      "name": "화학실 입구",
+      "photo": "img/chem/01_입구.jpg",
+      "startYaw": 0,
+      "links": [
+        { "to": "02", "yaw": 0, "pitch": -10 }
+      ],
+      "labels": [
+        { "text": "실험복·보안경", "yaw": -60, "pitch": 0, "detail": "들어가기 전에 실험복을 입고 보안경을 씁니다" }
+      ]
+    },
+    {
+      "id": "02",
+      "name": "실험대",
+      "photo": "img/chem/02_실험대.jpg",
+      "startYaw": 0,
+      "links": [
+        { "to": "01", "yaw": 180, "pitch": -10 }
+      ],
+      "labels": [
+        { "text": "세안기·비상 샤워", "yaw": 90, "pitch": 0, "detail": "약품이 눈이나 몸에 닿으면 바로 선생님께 알리고 물로 씻어 냅니다" },
+        { "text": "소화기", "yaw": -120, "pitch": -15 }
+      ]
+    }
+  ]
+}

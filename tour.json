@@ -1,0 +1,281 @@
+{
+  "title": "연수 장소 안내",
+  "subtitle": "화살표를 눌러 이동하세요",
+  "start": "01",
+  "group": "연수",
+  "nodes": [
+    {
+      "id": "01",
+      "name": "정문 (바깥)",
+      "photo": "img/01_정문밖.jpg",
+      "startYaw": 80.4,
+      "links": [
+        {"to": "02", "yaw": 86.7, "pitch": -10, "target": {"yaw": 86.7, "pitch": -0.9}, "arrive": {"yaw": 3.3, "pitch": -9.3}, "arrow": {"yaw": 85.7, "pitch": -34.3}}
+      ],
+      "labels": [
+        {"text": "정문", "yaw": 82.9, "pitch": -5.3, "detail": "정문으로 들어가 곧장 가면 본관 및 소망관이 나옵니다.", "box": {"yaw": 70.3, "pitch": 6.3}, "line": "#b45309"},
+        {"text": "소망관(연수 장소)", "yaw": 97.9, "pitch": 7.4, "detail": "연수 장소 입니다.", "box": {"yaw": 101.2, "pitch": 17.2}, "line": "#b45309"},
+        {"text": "본관", "yaw": 86.9, "pitch": 5.7, "detail": "학교 본관 건물입니다.", "box": {"yaw": 77.7, "pitch": 17.6}, "line": "#b45309"}
+      ],
+      "signs": [
+        {"text": "2026. 권역별 지능형과학실 이음 프로젝트", "yaw": 90.7, "pitch": 26.1, "size": 870, "bg": "#fff3c4", "align": "center", "font": 27, "sub": "담당자 워크숍 및 사업설명회(초등)\n2026. 9. 30.(수)", "turn": -11, "textScale": 175, "subScale": 150, "tilt": -41, "height": 135}
+      ]
+    },
+    {
+      "id": "02",
+      "name": "정문 안",
+      "photo": "img/02_정문안.jpg",
+      "startYaw": -7,
+      "pass": true,
+      "links": [
+        {"to": "01", "yaw": 178.9, "pitch": -10, "arrive": {"yaw": -86.3, "pitch": -12.1}, "target": {"yaw": 178.9, "pitch": -4.3}, "arrow": {"yaw": 179, "pitch": -30.2}},
+        {"to": "03", "yaw": 1.9, "pitch": -10, "arrive": {"yaw": -4.7, "pitch": 4.4}, "target": {"yaw": 1.9, "pitch": -3}, "arrow": {"yaw": 1.4, "pitch": -26.9}}
+      ],
+      "labels": []
+    },
+    {
+      "id": "03",
+      "name": "소망관 앞",
+      "photo": "img/03_소망관앞갈림길.jpg",
+      "startYaw": 5.5,
+      "links": [
+        {"to": "02", "yaw": -170.9, "pitch": -10, "label": "정문", "arrive": {"yaw": 178.3, "pitch": -3.3}, "target": {"yaw": -170.9, "pitch": -3.6}, "arrow": {"yaw": -0.9, "pitch": -24.9}},
+        {"to": "04", "yaw": 92, "pitch": -10, "target": {"yaw": 92, "pitch": -6.6}, "arrow": {"yaw": 16.3, "pitch": -18.7}, "arrive": {"yaw": 168.8, "pitch": -16.1}},
+        {"to": "03a-1", "yaw": 111.5, "pitch": -10, "target": {"yaw": 111.5, "pitch": -3.9}, "arrow": {"yaw": 12.9, "pitch": -25.1}},
+        {"to": "03b-1", "yaw": -62.6, "pitch": -10, "target": {"yaw": -62.6, "pitch": -3}, "arrow": {"yaw": -12.5, "pitch": -17.6}}
+      ],
+      "labels": [
+        {"text": "소망관 (연수 장소)", "yaw": 92.8, "pitch": 9.2, "detail": "초등: 계단으로 2층 별담터 / 중등: 1층 복도 지구과학실·무한상상실·화학실", "box": {"yaw": 81.7, "pitch": 23.5}},
+        {"text": "학교 본관", "yaw": -13.4, "pitch": 6, "detail": "학교 본관 건물입니다.", "box": {"yaw": -9.3, "pitch": 23.4}}
+      ],
+      "signs": [
+        {"text": "← 주차장\n\n↓ 정문\n\n→ 소망관\n\n→ 주차장", "yaw": 2.7, "pitch": -8.2, "size": 210, "kind": "aframe", "height": 345, "font": 44, "valign": "middle", "bg": "#fff3c4", "alpha": 80, "textScale": 80, "textPos": {"x": 25.2, "y": 9.8}, "turn": 6}
+      ]
+    },
+    {
+      "id": "03a-1",
+      "name": "체육관 주차장 가는 길",
+      "photo": "img/03a-1_체육관주차장가는길.jpg",
+      "startYaw": -10,
+      "pass": true,
+      "links": [
+        {"to": "03", "yaw": -156.1, "pitch": -10, "target": {"yaw": -156.1, "pitch": -3}, "arrow": {"yaw": -139.9, "pitch": -38.9}},
+        {"to": "03a", "yaw": -8, "pitch": -10, "target": {"yaw": -8, "pitch": -3.2}, "arrow": {"yaw": -13.2, "pitch": -28.6}, "arrive": {"yaw": -19.2, "pitch": -10.9}}
+      ],
+      "labels": []
+    },
+    {
+      "id": "03a",
+      "name": "체육관 아래 주차장",
+      "photo": "img/03a_체육관아래주차장.jpg",
+      "startYaw": -24.8,
+      "links": [
+        {"to": "03a-1", "yaw": -176, "pitch": -10, "label": "소망관 앞", "target": {"yaw": -176, "pitch": -0.1}, "arrow": {"yaw": 162.2, "pitch": -34.9}}
+      ],
+      "labels": [],
+      "signs": [
+        {"text": "주차안내", "size": 380, "kind": "xbanner", "height": 540, "font": 34, "align": "center", "bg": "#fff3c4", "textScale": 250, "alpha": 60, "valign": "top", "subScale": 140, "tilt": -5, "turn": -5, "yaw": -13.3, "pitch": -20.9, "sub": "현재 위치는 은혜관(체육관) 아래 주차장입니다.\n\n빈자리에 주차하시거나,\n다른 차량 출차에 방해되지\n않는 선이라면 주차선이 없는\n곳에 주차하셔도 됩니다.\n\n또는 진입로 한쪽에 다른 차량 통행에 지장이 없도록\n주차해 주시면 됩니다."}
+      ]
+    },
+    {
+      "id": "03b-1",
+      "name": "북쪽 주차장 가는 길",
+      "photo": "img/03b-1_북쪽주차장가는길1.jpg",
+      "startYaw": 0,
+      "pass": true,
+      "links": [
+        {"to": "03", "yaw": -165.4, "pitch": -10, "target": {"yaw": -165.4, "pitch": -6.3}, "arrow": {"yaw": -166.4, "pitch": -29.6}},
+        {"to": "03b-2", "yaw": 20.3, "pitch": -10, "target": {"yaw": 20.3, "pitch": -3.1}, "arrow": {"yaw": 9.8, "pitch": -25.2}, "arrive": {"yaw": -21.9, "pitch": 4.8}}
+      ],
+      "labels": []
+    },
+    {
+      "id": "03b-2",
+      "name": "북쪽 주차장 가는 길",
+      "photo": "img/03b-2_북쪽주차장가는길2.jpg",
+      "startYaw": -30,
+      "pass": true,
+      "links": [
+        {"to": "03b-1", "yaw": 105.8, "pitch": -10, "target": {"yaw": 105.8, "pitch": -3.1}, "arrow": {"yaw": 115.6, "pitch": -35.7}, "arrive": {"yaw": -170, "pitch": 1.7}},
+        {"to": "03b", "yaw": -10.7, "pitch": -10, "arrive": {"yaw": -12.4, "pitch": -11.4}, "target": {"yaw": -10.7, "pitch": -2.6}, "arrow": {"yaw": -22.9, "pitch": -37}}
+      ],
+      "labels": []
+    },
+    {
+      "id": "03b",
+      "name": "북쪽 주차장",
+      "photo": "img/03b_북쪽주차장.jpg",
+      "startYaw": -15.8,
+      "links": [
+        {"to": "03b-2", "yaw": 169.5, "pitch": -10, "label": "소망관 앞", "target": {"yaw": 169.5, "pitch": -3}, "arrow": {"yaw": 169.6, "pitch": -36.1}, "chip": 159.1}
+      ],
+      "labels": [
+        {"text": "일심관(1층 급식소)", "yaw": 1.8, "pitch": 11.5, "box": {"yaw": 0.7, "pitch": 23.1}},
+        {"text": "경해여중", "yaw": -5.6, "pitch": 9.9, "box": {"yaw": -25, "pitch": 24.2}}
+      ],
+      "signs": [
+        {"text": "주차안내", "yaw": -5.4, "pitch": -15.4, "size": 380, "kind": "xbanner", "height": 635, "font": 34, "align": "center", "bg": "#fff3c4", "textScale": 250, "alpha": 60, "sub": "현재 위치는 저희 학교 본관 입구 기준 왼쪽으로 가면\n나오는 북쪽 주차장입니다.\n\n빈자리에\n주차하시면 됩니다.\n\n앞쪽으로 쭉 가시면\n경해여중 주차장입니다.\n\n가능하면 경해여중 주차장 사용은 삼가 주시면\n감사하겠습니다.", "valign": "top", "subScale": 150, "tilt": -5, "turn": -5}
+      ]
+    },
+    {
+      "id": "04",
+      "name": "소망관 현관 (계단 앞)",
+      "photo": "img/04_소망관현관계단앞.jpg",
+      "startYaw": 173.3,
+      "links": [
+        {"to": "03", "yaw": 7.3, "pitch": -10, "label": "소망관 앞", "target": {"yaw": 7.3, "pitch": -5.5}, "arrow": {"yaw": 2, "pitch": -41.9}},
+        {"to": "10", "yaw": 96.2, "pitch": -10, "target": {"yaw": 96.2, "pitch": 12.3}, "arrow": {"yaw": 136.8, "pitch": -53.7}},
+        {"to": "05", "yaw": 178.5, "pitch": -10, "target": {"yaw": 178.5, "pitch": -6.3}, "arrow": {"yaw": 179.8, "pitch": -33.3}}
+      ],
+      "labels": [
+        {"text": "중등 → 복도 안쪽", "yaw": 180, "pitch": 12, "detail": "복도를 따라가면 지구과학실, 무한상상실, 화학실이 차례로 나옵니다"},
+        {"text": "초등 → 2층 별담터", "yaw": 93.9, "pitch": 26.7, "detail": "이 계단으로 2층에 올라가 복도를 따라 끝까지 가면 별담터입니다"},
+        {"text": "1층 여자 화장실", "yaw": -176.4, "pitch": 3.1, "detail": "복도를 따라 조금 가면 오른쪽에 있습니다"}
+      ],
+      "signs": [
+        {"text": "← 2층 별담터\n(연수 장소)", "yaw": 139.7, "pitch": 9.3, "size": 450, "align": "center", "bg": "#f8d7da", "font": 27, "textScale": 225, "turn": 31, "tilt": 7, "roll": 30}
+      ]
+    },
+    {
+      "id": "05",
+      "name": "지구과학실 앞",
+      "photo": "img/05_지구과학실입구.jpg",
+      "startYaw": -170,
+      "links": [
+        {"to": "04", "yaw": 15, "pitch": -10, "check": true},
+        {"to": "05a", "yaw": 90, "pitch": -10, "target": {"yaw": 90, "pitch": -43, "check": true}},
+        {"to": "06", "yaw": -170, "pitch": -10, "check": true}
+      ],
+      "labels": [
+        {"text": "지구과학실", "yaw": 90, "pitch": 12, "detail": "문 앞 화살표를 누르면 안으로 들어갑니다"}
+      ]
+    },
+    {
+      "id": "05a",
+      "name": "지구과학실",
+      "photo": "img/05a_지구과학실내부.jpg",
+      "startYaw": 0,
+      "links": [
+        {"to": "05", "yaw": -73, "pitch": -10, "target": {"yaw": -73, "pitch": -22, "check": true}}
+      ],
+      "labels": []
+    },
+    {
+      "id": "10",
+      "name": "2층 가는 계단참",
+      "photo": "img/10_2층가는계단참.jpg",
+      "startYaw": -170,
+      "pass": true,
+      "links": [
+        {"to": "04", "yaw": 164.5, "pitch": -20, "target": {"yaw": 164.5, "pitch": -32.4}, "arrow": {"yaw": 147.1, "pitch": -47.1}, "arrive": {"yaw": -3.4, "pitch": -18.7}},
+        {"to": "11", "yaw": -165.8, "pitch": -10, "arrive": {"yaw": -0.8, "pitch": -6.4}, "arrow": {"yaw": -148.6, "pitch": -35.5}, "target": {"yaw": -165.8, "pitch": -0.7}}
+      ],
+      "labels": []
+    },
+    {
+      "id": "11",
+      "name": "2층 계단 위",
+      "photo": "img/11_2층계단위.jpg",
+      "startYaw": 0,
+      "links": [
+        {"to": "10", "yaw": -96.9, "pitch": -10, "target": {"yaw": -96.9, "pitch": -16.2}, "arrow": {"yaw": -105.3, "pitch": -56.8}},
+        {"to": "12", "yaw": 0.6, "pitch": -10, "arrow": {"yaw": 1.4, "pitch": -40.3}, "target": {"yaw": 0.6, "pitch": -6.6}, "arrive": {"yaw": -180, "pitch": -8.9}}
+      ],
+      "labels": []
+    },
+    {
+      "id": "06",
+      "name": "1층 여자 화장실 앞",
+      "photo": "img/06_1층화장실앞.jpg",
+      "startYaw": 180,
+      "links": [
+        {"to": "07", "yaw": 180, "pitch": -10, "check": true},
+        {"to": "05", "yaw": -1.3, "pitch": -10, "target": {"yaw": -1.3, "pitch": -6.1}, "arrow": {"yaw": 3, "pitch": -35.7}}
+      ],
+      "labels": [],
+      "signs": [
+        {"text": "여자 화장실", "size": 560, "bg": "#facc15", "font": 27, "textScale": 250, "turn": -2, "tilt": -9, "roll": 2, "height": 115, "yaw": -86.3, "pitch": 28.9, "align": "center"}
+      ]
+    },
+    {
+      "id": "07",
+      "name": "무한상상실 앞",
+      "photo": "img/07_무한상상실입구.jpg",
+      "startYaw": 175,
+      "links": [
+        {"to": "06", "yaw": -3, "pitch": -10, "check": true},
+        {"to": "07a", "yaw": 88, "pitch": -10, "target": {"yaw": 88, "pitch": -42, "check": true}},
+        {"to": "08", "yaw": 175, "pitch": -10, "target": {"yaw": 175, "pitch": -9.5, "check": true}}
+      ],
+      "labels": [
+        {"text": "무한상상실", "yaw": 88, "pitch": 12, "detail": "문 앞 화살표를 누르면 안으로 들어갑니다"},
+        {"text": "화학실", "yaw": 175, "pitch": 3, "detail": "복도 끝 유리문(Chem Lab)이 화학실입니다"}
+      ]
+    },
+    {
+      "id": "07a",
+      "name": "무한상상실",
+      "photo": "img/07a_무한상상실내부.jpg",
+      "startYaw": 0,
+      "links": [
+        {"to": "07", "yaw": -135, "pitch": -10, "target": {"yaw": -135, "pitch": -10, "check": true}}
+      ],
+      "labels": []
+    },
+    {
+      "id": "08",
+      "name": "화학실 앞",
+      "photo": "img/08_화학실입구.jpg",
+      "audio": "img/info/04_화학실앞_도착.m4a",
+      "startYaw": -3,
+      "links": [
+        {"to": "07", "yaw": 180, "pitch": -10, "target": {"yaw": 180, "pitch": -9.5, "check": true}},
+        {"to": "09", "yaw": -3, "pitch": -10, "target": {"yaw": -3, "pitch": -10, "check": true}}
+      ],
+      "labels": [
+        {"text": "화학실 (Chem Lab)", "yaw": -3, "pitch": 14, "detail": "문 앞 화살표를 누르면 안으로 들어갑니다"}
+      ]
+    },
+    {
+      "id": "09",
+      "name": "화학실",
+      "photo": "img/09_화학실내부.jpg",
+      "say": "화학실입니다. 왼쪽에 비상 샤워와 흄후드가 있습니다. 글씨를 누르면 자세한 설명과 영상을 볼 수 있습니다.",
+      "startYaw": 0,
+      "links": [
+        {"to": "08", "yaw": -38, "pitch": -10, "target": {"yaw": -38, "pitch": -14, "check": true}}
+      ],
+      "labels": [
+        {"text": "비상 샤워·세안기", "yaw": -85, "pitch": 5, "detail": "약품이 몸이나 눈에 닿았을 때 바로 씻어 내는 곳", "body": "약품이 눈이나 몸에 닿았을 때 바로 씻어 내는 비상 설비입니다.\n\n눈에 들어갔다면 세안기 손잡이를 밀어 물을 틀고, 눈꺼풀을 벌린 채 15분 이상 흐르는 물로 씻습니다.\n몸에 많이 쏟았다면 샤워 손잡이를 당기고, 젖은 옷을 벗으면서 씻어 냅니다.\n\n씻는 동안 옆 사람이 선생님께 바로 알립니다.", "audio": "img/info/05_비상샤워_음성.m4a", "videos": [{"src": "https://www.youtube.com/watch?v=ehlvcwnRfTY", "caption": "[화학 실험실 안전] 7-3. 비상 샤워장치 (한국화학연구원 KRICT)"}], "images": [{"src": "img/info/05_비상샤워.jpg", "caption": "비상 샤워와 세안기 (360 사진에서 잘라낸 임시 이미지)"}]},
+        {"text": "흄후드", "yaw": -70, "pitch": 0, "detail": "냄새나 해로운 기체가 나오는 실험은 이 안에서 합니다", "body": "흄후드는 실험 중에 나오는 기체를 빨아들여 건물 밖으로 내보내는 배기 장치입니다.\n\n쓰기 전에 전원과 배기 팬을 켜고, 앞 유리창은 손이 들어갈 만큼만 올립니다.\n얼굴을 안으로 넣지 않고, 약품과 기구는 입구에서 15cm 이상 안쪽에 둡니다.\n\n실험이 끝나도 팬을 잠시 켜 두어 남은 기체를 빼낸 뒤 끕니다.", "videos": [{"src": "https://www.youtube.com/shorts/uNLsls8rb90", "caption": "[연구실 안전 꿀Tip - 화학물질편] Ep4. 흄후드 사용 지침 (국가연구안전관리본부 연구안전 TV)"}], "images": [{"src": "img/info/05_흄후드.jpg", "caption": "화학실 흄후드 (360 사진에서 잘라낸 임시 이미지)"}]}
+      ]
+    },
+    {
+      "id": "12",
+      "name": "별담터 입구 (남자 화장실 입구)",
+      "photo": "img/12_별담터입구_2층화장실.jpg",
+      "startYaw": -180,
+      "links": [
+        {"to": "13", "yaw": 166.3, "pitch": -10, "target": {"yaw": 166.3, "pitch": -13}, "arrow": {"yaw": 179.7, "pitch": -36.5}, "arrive": {"yaw": -11.8, "pitch": -12.3}},
+        {"to": "11", "yaw": -2, "pitch": -10, "target": {"yaw": -2, "pitch": -6.1}, "arrow": {"yaw": 0.2, "pitch": -36.3}, "arrive": {"yaw": -100.8, "pitch": -24.4}}
+      ],
+      "labels": [
+        {"text": "별담터", "yaw": 180, "pitch": 14, "detail": "초등 연수 장소입니다. 문 앞 화살표를 누르면 안으로 들어갑니다", "box": {"yaw": -165.4, "pitch": 26.5}}
+      ],
+      "signs": [
+        {"text": "등록처", "yaw": -169.1, "pitch": -9.4, "size": 360, "sub": "들어가서 바로", "turn": 64, "roll": 14, "tilt": -7, "arrowDeg": -180, "font": 51, "height": 115, "textScale": 120, "bg": "#facc15"},
+        {"text": "(임시)  남자 화장실", "yaw": -69.1, "pitch": 29.3, "size": 560, "bg": "#facc15", "font": 27, "textScale": 250, "turn": -15, "tilt": -9, "roll": 4, "height": 115}
+      ]
+    },
+    {
+      "id": "13",
+      "name": "별담터",
+      "photo": "img/13_별담터.jpg",
+      "startYaw": -11.8,
+      "links": [
+        {"to": "12", "yaw": 154.1, "pitch": -10, "label": "별탐터 입구(남자 화장실 입구)", "target": {"yaw": 154.1, "pitch": -4.6}, "arrow": {"yaw": 153.4, "pitch": -43.5}, "arrive": {"yaw": -1.5, "pitch": -21}}
+      ],
+      "labels": []
+    }
+  ]
+}
